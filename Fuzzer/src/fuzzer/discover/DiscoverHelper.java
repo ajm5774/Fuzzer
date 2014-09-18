@@ -1,8 +1,14 @@
 package fuzzer.discover;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.xerces.util.URI.MalformedURIException;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
@@ -13,6 +19,9 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
 
 public class DiscoverHelper {
+	
+	public static String[] _pageGuesses = {"admin", "edit"};
+	public static String[] _commonExtensions = {".php", ".jsp"};
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
 		WebClient webClient = new WebClient();
@@ -28,12 +37,98 @@ public class DiscoverHelper {
 	 * @throws IOException
 	 * @throws MalformedURLException
 	 */
-	private static void discoverLinks(WebClient webClient) throws IOException, MalformedURLException {
+	public static void discoverLinks(WebClient webClient) throws IOException, MalformedURLException {
 		HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit");
 		List<HtmlAnchor> links = page.getAnchors();
 		for (HtmlAnchor link : links) {
 			System.out.println("Link discovered: " + link.asText() + " @URL=" + link.getHrefAttribute());
 		}
+	}
+	
+	public static List<String> DiscoverPages(String url)
+	{
+		WebClient webClient = new WebClient();
+		webClient.setJavaScriptEnabled(true);
+		
+		HtmlPage page = webClient.getPage(url);
+		List<HtmlAnchor> anchors = page.getAnchors();
+		
+		List<String> linkStrings = new ArrayList<String>();
+		for(HtmlAnchor anchor: anchors)
+			linkStrings.add(anchor.getHrefAttribute());
+		
+		linkStrings = GuessPages(linkStrings);
+		linkStrings = GuessExtensions(linkStrings);
+		
+		return linkStrings;
+		
+	}
+	
+	private static List<String> GuessPages(List<String> links)
+	{
+		List<String> successGuesses = new ArrayList<String>();
+		URI uri;
+		String guess;
+		
+		for(String link: links)
+		{
+			try
+			{
+				uri = new URI(link);
+				for(String newFragment: _pageGuesses)
+				{
+					guess = uri.toString().replace(uri.getFragment(), newFragment);
+					HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+					huc.setRequestMethod("HEAD");
+					int responseCode = huc.getResponseCode();
+					
+					if(responseCode == 200)
+						successGuesses.add(guess);
+				}
+			}
+			catch(MalformedURIException ex){}
+		}
+		
+		links.addAll(successGuesses);
+		
+		return links;
+	}
+	
+	private static List<String> GuessExtensions(List<String> links)
+	{
+		List<String> successGuesses = new ArrayList<String>();
+		URI uri;
+		String guess;
+		
+		for(String link: links)
+		{
+			try
+			{
+				uri = new URI(link);
+				for(String newExtension: _commonExtensions)
+				{
+					if(uri.getPath().contains("."))
+					{
+						String extension = uri.getPath().substring(uri.getPath().indexOf("."));
+						guess = uri.getPath().replace(extension, newExtension)
+					}
+					else
+						guess = uri.getPath() + newExtension;
+					HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+					huc.setRequestMethod("HEAD");
+					int responseCode = huc.getResponseCode();
+					
+					if(responseCode == 200)
+						successGuesses.add(guess);
+				}
+			}
+			catch(MalformedURIException ex){}
+		}
+		
+		links.addAll(successGuesses);
+		
+		return links;
+		
 	}
 
 	/**
@@ -54,4 +149,6 @@ public class DiscoverHelper {
 			System.out.println(submit.<HtmlPage> click().getWebResponse().getContentAsString());
 		}
 	}
+	
+	public static  
 }
