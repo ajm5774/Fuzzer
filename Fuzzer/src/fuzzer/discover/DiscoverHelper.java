@@ -1,5 +1,9 @@
 package fuzzer.discover;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -7,17 +11,24 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.xerces.util.URI.MalformedURIException;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
+import com.gargoylesoftware.htmlunit.util.Cookie;
 
 public class DiscoverHelper {
 	
@@ -25,56 +36,184 @@ public class DiscoverHelper {
 	public static String[] _commonExtensions = {".php", ".jsp"};
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		WebClient webClient = new WebClient();
-		webClient.setJavaScriptEnabled(true);
-		discoverLinks(webClient);
-		doFormPost(webClient);
-		webClient.closeAllWindows();
-	}
-
-	/**
-	 * This code is for showing how you can get all the links on a given page, and visit a given URL
-	 * @param webClient
-	 * @throws IOException
-	 * @throws MalformedURLException
-	 */
-	public static void discoverLinks(WebClient webClient) throws IOException, MalformedURLException {
-		HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit");
-		List<HtmlAnchor> links = page.getAnchors();
-		for (HtmlAnchor link : links) {
-			System.out.println("Link discovered: " + link.asText() + " @URL=" + link.getHrefAttribute());
-		}
+		System.out.println(Discover("http://torrentz.eu/", ""));
 	}
 	
-	public static List<String> DiscoverPages(String url)
+	//==================================================Public Methods=============================================================================
+	
+	public static String Discover(String url, String fileName)
 	{
-		WebClient webClient = new WebClient();
-		webClient.setJavaScriptEnabled(true);
+		String result = "";
 		
-		HtmlPage page;
-		List<String> linkStrings = new ArrayList<String>();
-		try
-		{
-			page = webClient.getPage(url);
-			List<HtmlAnchor> anchors = page.getAnchors();
-			
-			for(HtmlAnchor anchor: anchors)
-				linkStrings.add(anchor.getHrefAttribute());
-			
-			linkStrings = GuessPages(linkStrings);
-			linkStrings = GuessExtensions(linkStrings);
+		String[] commonWords = GetCommonWords(fileName);
 		
+		try {
+			Set<String> urls = DiscoverPages(url, commonWords);
+			result += PrintHelper.PagesToString(urls);
+			result += DiscoverInputs(urls);
+		} catch (MalformedURLException e) {
+			e.getMessage();
+		} catch (IOException e) {
+			e.getMessage();
 		}
-		catch(MalformedURLException ex){}
-		catch(IOException ex){}
+		
+		return result;
+	}
+	
+	public static Set<String> DiscoverPages(String url, String[] commonWords)
+	{
+		Set<String> linkStrings = new HashSet<String>();
+
+		linkStrings = GetLinks(url, true);
+		linkStrings = GuessPages(linkStrings, commonWords);
+		linkStrings = GuessExtensions(linkStrings);
 		
 		return linkStrings;
 		
 	}
 	
-	private static List<String> GuessPages(List<String> links)
+	public static String DiscoverInputs(Set<String> urls) throws MalformedURLException, IOException
 	{
-		List<String> successGuesses = new ArrayList<String>();
+		String result = "";
+		
+		Map<String, List<String>> urlParams = GetUrlParams(urls);
+		result += PrintHelper.UrlParamsToString(urlParams);
+		
+		Set<String> inputEles = GetInputElements(urls);
+		result += PrintHelper.InputElementsToString(inputEles);
+		
+		Set<Cookie> cookies = GetCookies(urls);
+		result += PrintHelper.CookiesToString(cookies);
+		
+		return result;
+	}
+	
+	//==================================================Private Methods=============================================================================
+	
+	private static String[] GetCommonWords(String fileName)
+	{
+		if(fileName == null || fileName.isEmpty())
+			return new String[0];
+		
+		if(!new File(fileName).exists())
+		{
+			System.out.println("File does not exist: " + fileName);
+			return new String[0];
+		}
+		
+		String commonWordsString = "";
+		try
+		{
+			BufferedReader br = new BufferedReader(new FileReader(fileName));
+		    try {
+		        StringBuilder sb = new StringBuilder();
+		        String line = br.readLine();
+	
+		        while (line != null) {
+		            sb.append(line);
+		            sb.append(System.lineSeparator());
+		            line = br.readLine();
+		        }
+		        commonWordsString = sb.toString();
+		        
+		    }
+		    catch (FileNotFoundException e){}
+		    finally {
+		        br.close();
+		    }
+		}
+		catch (IOException e){}
+		
+	    return commonWordsString.split("[ |\r\n|,|\n|\t]*");
+	    
+	}
+	
+	private static Set<Cookie> GetCookies(Set<String> urls)
+	{
+		WebClient webClient = new WebClient();
+		webClient.setJavaScriptEnabled(true);
+		
+		Set<Cookie> cookies = new HashSet<Cookie>();
+		for(String url: urls)
+		{
+			cookies.addAll(webClient.getCookieManager().getCookies());
+		}
+		
+		return cookies;
+	}
+	
+	private static Set<String> GetInputElements(Set<String> urls) throws MalformedURLException, IOException
+	{
+		Set<String> inputs = new HashSet<String>();
+		for(String url: urls)
+		{
+			WebClient webClient = new WebClient();
+			webClient.setJavaScriptEnabled(true);
+			
+			HtmlPage page = webClient.getPage(url);
+			
+			List<HtmlElement> inputElements = page.getElementsByName("input");
+			for(HtmlElement ele: inputElements)
+				inputs.add(ele.toString());
+		}
+		return inputs;
+	}
+	
+	private static Map<String, List<String>> GetUrlParams(Set<String> urls)
+	{
+		Map<String, List<String>> result = new HashMap<String, List<String>>();
+		String rootUrl;
+		int qIndex;
+		for(String urlString: urls)
+		{
+			qIndex = urlString.indexOf("?");
+			String[] params = urlString.substring(qIndex).split("&");
+			rootUrl = urlString.substring(0, qIndex - 1);
+			
+			if(params.length > 0 && result.containsKey(rootUrl))
+				result.put(rootUrl, new ArrayList<String>());
+			
+			for(String param: params)
+				result.get(rootUrl).add(param);
+		}
+		
+		return result;
+	}
+	
+	private static Set<String> GetLinks(String url, boolean recursive)
+	{
+		WebClient webClient = new WebClient();
+		webClient.setJavaScriptEnabled(true);
+		
+		HtmlPage page;
+		Set<String> linkStrings = new HashSet<String>();
+		try
+		{
+			page = webClient.getPage(url);
+			System.out.println(url);
+			List<HtmlAnchor> anchors = page.getAnchors();
+			String href;
+			for(HtmlAnchor anchor: anchors)
+			{
+				href = anchor.getHrefAttribute();
+				System.out.println(href);
+				if(new URL(href).getHost() == new URL(url).getHost())
+				{
+					linkStrings.add(href);
+					if(recursive)
+						linkStrings.addAll(GetLinks(href, recursive));
+				}
+			}
+		}
+		catch(MalformedURLException ex){System.out.println(ex.getMessage());}
+		catch(IOException ex){System.out.println(ex.getMessage());}
+		
+		return linkStrings;
+	}
+	
+	private static Set<String> GuessPages(Set<String> links, String[] commonWords)
+	{
+		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
 		String guess;
 		
@@ -83,7 +222,7 @@ public class DiscoverHelper {
 			try
 			{
 				uri = new URI(link);
-				for(String newFragment: _pageGuesses)
+				for(String newFragment: commonWords)
 				{
 					try
 					{
@@ -107,9 +246,9 @@ public class DiscoverHelper {
 		return links;
 	}
 	
-	private static List<String> GuessExtensions(List<String> links)
+	private static Set<String> GuessExtensions(Set<String> links)
 	{
-		List<String> successGuesses = new ArrayList<String>();
+		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
 		String guess;
 		
