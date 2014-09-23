@@ -241,31 +241,74 @@ public class DiscoverHelper {
 				uri = new URI(link);
 				for(String newFragment: commonWords)
 				{
+					/*for (String newExtension : _commonExtensions)
+					try
+					{
+						//guess = uri.toString().replace(uri.getFragment(), newFragment);
+						guess = uri.toString()+"/"+newFragment;
+						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+						huc.setRequestMethod("HEAD");
+						int responseCode = huc.getResponseCode();
+						
+						if(responseCode == 200)
+							successGuesses.add(guess);
+						
+						guess+=newExtension;
+						huc = (HttpURLConnection) new URL(guess).openConnection();
+						huc.setRequestMethod("HEAD");
+						responseCode = huc.getResponseCode();
+						
+						if(responseCode == 200)
+							successGuesses.add(guess);
+					}
+					catch(MalformedURLException ex){}
+					catch(IOException ex){}
+					catch(Exception ex){System.out.println("General Exception: "+ex.getMessage());}*/
 					for(String newExtension: _commonExtensions)
 					{
-						fragmentWithextension = newFragment + newExtension;
+						fragmentWithextension = "/"+newFragment + newExtension;
 						try
 						{
 							String lastPiece = PathHelper.GetLastPiece(link);
-							guess = link.replace(lastPiece, fragmentWithextension);
-							HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
-							huc.setRequestMethod("HEAD");
-							int responseCode = huc.getResponseCode();
-							
-							if(responseCode == 200)
-								successGuesses.add(guess);
+							boolean endsWithExtension = false;
+							for(String ce: _commonExtensions)
+								if (ce.length() > 0 && link.endsWith(ce))
+									endsWithExtension = true;
+							if(!endsWithExtension)
+							{
+								guess = link+fragmentWithextension;
+							if (!links.contains(guess))
+							{
+								HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+								huc.setRequestMethod("HEAD");
+								int responseCode = huc.getResponseCode();
+								
+								if(responseCode == 200)
+								{
+									successGuesses.add(guess);
+								}
+							}
+							}
 						}
-						catch(MalformedURLException ex){}
-						catch(IOException ex){}
+						catch(MalformedURLException ex){System.out.println(ex.getMessage());}
+						catch(IOException ex){System.out.println(ex.getMessage());}
 					}
 				}
 			}
-			catch(URISyntaxException ex){}
+			catch(URISyntaxException ex){System.out.println(ex.getMessage());}
 		}
 		
 		links.addAll(successGuesses);
 		
-		return links;
+		if(successGuesses.size() > 0)
+		{
+			links.addAll(GuessPages(successGuesses, commonWords));
+			return links;
+		}
+		else
+		{
+			return links;
+		}
 	}
 	
 	/**

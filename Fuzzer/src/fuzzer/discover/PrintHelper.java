@@ -10,6 +10,7 @@ public class PrintHelper {
 	
 	private static String GetPrintLabel(String label)
 	{
+
 		return "------------------------------" + label + "------------------------------\r\n";
 	}
 	
