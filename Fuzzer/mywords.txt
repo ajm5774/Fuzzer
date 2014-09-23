@@ -1,0 +1,8 @@
+home
+admin
+edit
+login
+product
+index
+vulnerabilities
+csrf
