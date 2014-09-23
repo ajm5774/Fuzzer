@@ -33,7 +33,7 @@ import com.gargoylesoftware.htmlunit.util.Cookie;
 public class DiscoverHelper {
 	private static String url;
 	private static String custom_auth;
-	private static File common_words;
+	private static String common_words;
 	
 	//Used for fuzz test
 	private static boolean test = false;
@@ -69,8 +69,7 @@ public class DiscoverHelper {
 		
 		if (option.startsWith("--common-words="))
 		{
-			String filename = option.substring(15);
-			common_words = new File(filename);
+			common_words = option.substring(15);
 		}
 
 		//for fuzz test
@@ -117,7 +116,7 @@ public class DiscoverHelper {
 	
 	
 	
-	System.out.println(Discover(url, common_words.getName()));
+	System.out.println(Discover(url, common_words));
 	}
 	
 	//==================================================Public Methods=============================================================================
