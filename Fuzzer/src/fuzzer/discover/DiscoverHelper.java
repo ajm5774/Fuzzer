@@ -25,13 +25,30 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
 public class DiscoverHelper {
+<<<<<<< HEAD
 	public static String[] _pageGuesses = {"admin", "edit"};
 	public static String[] _commonExtensions = {"", ".php", ".jsp"};
+=======
+	
+	public static String[] _pageGuesses = {"admin", "edit", "login"};
+	public static String[] _commonExtensions = {".php", ".jsp"};
+	public static File common_usernames = new File("./common_usernames.txt");
+	public static File common_passwords = new File("./common_passwords.txt");
+>>>>>>> branch 'master' of https://github.com/ajm5774/Fuzzer.git
 
+<<<<<<< HEAD
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+<<<<<<< HEAD
 		System.out.println(Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt"));
 	}
 	
+=======
+		System.out.println(Discover("http://torrentz.eu/", ""));
+	}
+	
+=======
+>>>>>>> branch 'master' of https://github.com/ajm5774/Fuzzer.git
+>>>>>>> branch 'master' of https://github.com/ajm5774/Fuzzer.git
 	//==================================================Public Methods=============================================================================
 	
 	public static String Discover(String url, String fileName)
@@ -324,5 +341,39 @@ public class DiscoverHelper {
 			HtmlSubmitInput submit = (HtmlSubmitInput) form.getFirstByXPath("//input[@id='submit']");
 			System.out.println(submit.<HtmlPage> click().getWebResponse().getContentAsString());
 		}
+<<<<<<< HEAD
 	}*/
+=======
+	} 
+	private static void customAuth(WebClient webClient, String address, File usernamesFile, File passwordsFile) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+		//HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit/product.jsp?prodid=26");
+		HtmlPage page;
+	
+		String[] common_users = GetCommonWords(usernamesFile.toString());
+		String[] common_passwords = GetCommonWords(passwordsFile.toString());
+		
+		if (address.compareTo("dwa") == 0){
+			page = webClient.getPage("http://127.0.0.1/dvwa/");
+		}
+		else {
+			page = webClient.getPage("http://127.0.0.1/bodgeit");
+		}
+		
+		List<HtmlForm> forms = page.getForms();
+		for (HtmlForm form : forms) {
+			for (String username: common_users){
+				for (String password: common_passwords){
+					try{
+						form.getInputByName("username").setValueAttribute(username);
+						form.getInputByName("password").setValueAttribute(password);
+						page = (HtmlPage) form.getInputByName("Login").click();
+						
+					}
+					catch(MalformedURLException ex){}
+					catch(IOException ex){}
+				}
+			}
+		}
+	}
+>>>>>>> branch 'master' of https://github.com/ajm5774/Fuzzer.git
 }
