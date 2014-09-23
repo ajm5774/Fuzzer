@@ -62,11 +62,6 @@ public class DiscoverHelper {
 
 		linkStrings = GetLinks(url, true);
 		linkStrings = GuessPages(linkStrings, commonWords);
-		//linkStrings = GuessExtensions(linkStrings);
-		for (String ls : linkStrings)
-		{
-			System.out.println("Link String after GuessExtensions: "+ls);
-		}
 		
 		return linkStrings;
 		
