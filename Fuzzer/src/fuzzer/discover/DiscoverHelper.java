@@ -310,47 +310,7 @@ public class DiscoverHelper {
 		}
 	}
 	
-	/*private static Set<String> GuessExtensions(Set<String> links)
-	{
-		Set<String> successGuesses = new HashSet<String>();
-		URI uri;
-		String guess;
-		
-		for(String link: links)
-		{
-			try
-			{
-				uri = new URI(link);
-				for(String newExtension: _commonExtensions)
-				{
-					try
-					{
-						if(uri.getPath().contains("."))
-						{
-							String extension = uri.getPath().substring(uri.getPath().indexOf("."));
-							guess = uri.getPath().replace(extension, newExtension);
-						}
-						else
-							guess = uri.getPath() + newExtension;
-						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
-						huc.setRequestMethod("HEAD");
-						int responseCode = huc.getResponseCode();
-						
-						if(responseCode == 200)
-							successGuesses.add(guess);
-					}
-					catch(MalformedURLException ex){}
-					catch(IOException ex){}
-				}
-			}
-			catch(URISyntaxException ex){}
-		}
-		
-		links.addAll(successGuesses);
-		
-		return links;
-		
-	}*/
+	
 
 	/**
 	 * This code is for demonstrating techniques for submitting an HTML form. Fuzzer code would need to be
