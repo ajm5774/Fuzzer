@@ -32,17 +32,18 @@ import com.gargoylesoftware.htmlunit.util.Cookie;
 
 public class DiscoverHelper {
 	
-	public static String[] _pageGuesses = {"admin", "edit"};
+	public static String[] _pageGuesses = {"admin", "edit", "login"};
 	public static String[] _commonExtensions = {".php", ".jsp"};
 	public static File common_usernames = new File("./common_usernames.txt");
 	public static File common_passwords = new File("./common_passwords.txt");
 
+<<<<<<< HEAD
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		//System.out.println(Discover("http://torrentz.eu/", ""));
-		WebClient webClient =  new WebClient();
-		customAuth(webClient, "dwa", common_usernames, common_passwords);
+		System.out.println(Discover("http://torrentz.eu/", ""));
 	}
 	
+=======
+>>>>>>> branch 'master' of https://github.com/ajm5774/Fuzzer.git
 	//==================================================Public Methods=============================================================================
 	
 	public static String Discover(String url, String fileName)
