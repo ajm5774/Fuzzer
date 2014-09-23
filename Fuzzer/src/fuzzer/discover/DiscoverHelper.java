@@ -50,75 +50,79 @@ public class DiscoverHelper {
 
 	
 	
-	
-	if (args[0].equals("test"))
-	{
-		test = true;
-	}
-	
-	url = args[1];
-	for (int i = 2; i < args.length; i++)
-	{
-		String option = args[i];
-		
-		
-		if (option.startsWith("--custom-auth="))
-		{
-			custom_auth = option.substring(14);
-		}
-		
-		if (option.startsWith("--common-words="))
-		{
-			common_words = option.substring(15);
-		}
-
-		//for fuzz test
-		if (test)
-		{
-			if (option.startsWith("--vectors="))
-			{
-				String filename = option.substring(10);
-				vectors = new File(filename);
-			}
-			if (option.startsWith("--sensitive="))
-			{
-				String filename = option.substring(12);
-				sensitive = new File(filename);
-			}
-			if (option.startsWith("--random="))
-			{
-				random = option.substring(9).equals("true")?true:false;
-			}
-			if (option.startsWith("--slow="))
-			{
-				slow = Integer.parseInt(option.substring(7));
-			}
-		}
-		
-		
-	}
-	
-	if (common_words == null)
-	{
-		System.out.println("--common-words is required.");
-		return;
-	}
-	if (test && vectors == null)
-	{
-		System.out.println("--vectors is required");
-		return;
-	}
-	if (test && sensitive == null)
-	{
-		System.out.println("--sensitive is required");
-		return;
-	}
-	
-	
-	
+	setCommandLineOptions(args);
 	System.out.println(Discover(url, common_words));
+	
+	
 	}
 	
+	private static void setCommandLineOptions(String[] args) 
+	{
+		if (args[0].equals("test"))
+		{
+			test = true;
+		}
+		
+		url = args[1];
+		for (int i = 2; i < args.length; i++)
+		{
+			String option = args[i];
+			
+			
+			if (option.startsWith("--custom-auth="))
+			{
+				custom_auth = option.substring(14);
+			}
+			
+			if (option.startsWith("--common-words="))
+			{
+				common_words = option.substring(15);
+			}
+
+			//for fuzz test
+			if (test)
+			{
+				if (option.startsWith("--vectors="))
+				{
+					String filename = option.substring(10);
+					vectors = new File(filename);
+				}
+				if (option.startsWith("--sensitive="))
+				{
+					String filename = option.substring(12);
+					sensitive = new File(filename);
+				}
+				if (option.startsWith("--random="))
+				{
+					random = option.substring(9).equals("true")?true:false;
+				}
+				if (option.startsWith("--slow="))
+				{
+					slow = Integer.parseInt(option.substring(7));
+				}
+			}
+			
+			
+		}
+		
+		if (common_words == null)
+		{
+			System.out.println("--common-words is required.");
+			return;
+		}
+		if (test && vectors == null)
+		{
+			System.out.println("--vectors is required");
+			return;
+		}
+		if (test && sensitive == null)
+		{
+			System.out.println("--sensitive is required");
+			return;
+		}
+		
+	}
+
 	//==================================================Public Methods=============================================================================
 	
 	public static String Discover(String url, String fileName)
