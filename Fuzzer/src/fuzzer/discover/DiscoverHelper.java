@@ -42,7 +42,7 @@ public class DiscoverHelper {
 		String result = "";
 		
 		String[] commonWords = GetCommonWords(fileName);
-
+		
 		try {
 			Set<String> urls = DiscoverPages(url, commonWords);
 			result += PrintHelper.PagesToString(urls);
@@ -89,8 +89,10 @@ public class DiscoverHelper {
 	{
 		if(fileName == null || fileName.isEmpty())
 			return new String[0];
-		
-		if(!new File(fileName).exists())
+
+		File file = new File(fileName);
+		String fullPath = file.getAbsolutePath();
+		if(!file.exists())
 		{
 			System.out.println("File does not exist: " + fileName);
 			return new String[0];
@@ -126,7 +128,7 @@ public class DiscoverHelper {
 	private static Set<Cookie> GetCookies(Set<String> urls)
 	{
 		WebClient webClient = new WebClient();
-		webClient.setJavaScriptEnabled(true);
+		webClient.getOptions().setJavaScriptEnabled(true);
 		
 		Set<Cookie> cookies = new HashSet<Cookie>();
 		for(String url: urls)
@@ -139,20 +141,22 @@ public class DiscoverHelper {
 	
 	private static Set<String> GetInputElements(Set<String> urls) throws MalformedURLException, IOException
 	{
+		WebClient webClient = new WebClient();
+		webClient.getOptions().setJavaScriptEnabled(true);
+		webClient.getOptions().setTimeout(2000);
+		
 		Set<String> inputs = new HashSet<String>();
 		for(String url: urls)
 		{
-			try{
-			WebClient webClient = new WebClient();
-			webClient.setJavaScriptEnabled(true);
-			
-			HtmlPage page = webClient.getPage(url);
-			
-			List<HtmlElement> inputElements = page.getElementsByName("input");
-			for(HtmlElement ele: inputElements)
-				inputs.add(ele.toString());
+			try
+			{
+				HtmlPage page = webClient.getPage(url);
+				
+				List<DomElement> inputElements = page.getElementsByName("input");
+				for(DomElement ele: inputElements)
+					inputs.add(ele.toString());
 			}
-			catch(Exception ex){System.out.println(ex.getMessage());}
+			catch(FailingHttpStatusCodeException ex){System.err.println("Problem getting page: " + url);}
 		}
 		return inputs;
 	}
@@ -165,12 +169,12 @@ public class DiscoverHelper {
 		for(String urlString: urls)
 		{
 			qIndex = urlString.indexOf("?");
-			if (qIndex != -1)
+			if(qIndex >= 0)
 			{
-				String[] params = urlString.substring(qIndex).split("&");
-				rootUrl = urlString.substring(0, qIndex - 1);
+				String[] params = urlString.substring(qIndex + 1).split("&");
+				rootUrl = urlString.substring(0, qIndex);
 				
-				if(params.length > 0 && result.containsKey(rootUrl))
+				if(params.length > 0 && !result.containsKey(rootUrl))
 					result.put(rootUrl, new ArrayList<String>());
 				
 				for(String param: params)
@@ -184,7 +188,7 @@ public class DiscoverHelper {
 	private static Set<String> GetLinks(String url, boolean recursive)
 	{
 		WebClient webClient = new WebClient();
-		webClient.setJavaScriptEnabled(true);
+		webClient.getOptions().setJavaScriptEnabled(true);
 		
 		HtmlPage page;
 		Set<String> linkStrings = new HashSet<String>();
@@ -196,14 +200,26 @@ public class DiscoverHelper {
 			String href;
 			for(HtmlAnchor anchor: anchors)
 			{
-				href = anchor.getHrefAttribute();
-				System.out.println(href);
-				if(new URL(href).getHost().equals(new URL(url).getHost()))
+				try
 				{
-					linkStrings.add(href);
-					if(recursive)
-						linkStrings.addAll(GetLinks(href, recursive));
+					href = anchor.getHrefAttribute();
+					
+					if(!href.startsWith("http"))
+					{
+						String lastPiece = PathHelper.GetLastPiece(url);
+						url = url.replace(lastPiece, "");
+						href = PathHelper.Combine(new String[]{url, href});
+					}
+
+					if(new URL(href).getHost().equals(new URL(url).getHost()))
+					{
+						linkStrings.add(href);
+						if(recursive)
+							linkStrings.addAll(GetLinks(href, recursive));
+					}	
 				}
+				catch(MalformedURLException ex){System.out.println(ex.getMessage());}
+				catch(IOException ex){System.out.println(ex.getMessage());}
 			}
 		}
 		catch(MalformedURLException ex){System.out.println(ex.getMessage());}
@@ -216,7 +232,7 @@ public class DiscoverHelper {
 	{
 		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
-		String guess;
+		String guess, fragmentWithextension;
 		
 		for(String link: links)
 		{
@@ -225,7 +241,7 @@ public class DiscoverHelper {
 				uri = new URI(link);
 				for(String newFragment: commonWords)
 				{
-					for (String newExtension : _commonExtensions)
+					/*for (String newExtension : _commonExtensions)
 					try
 					{
 						//guess = uri.toString().replace(uri.getFragment(), newFragment);
@@ -247,7 +263,24 @@ public class DiscoverHelper {
 					}
 					catch(MalformedURLException ex){}
 					catch(IOException ex){}
-					catch(Exception ex){System.out.println("General Exception: "+ex.getMessage());}
+					catch(Exception ex){System.out.println("General Exception: "+ex.getMessage());}*/
+					for(String newExtension: _commonExtensions)
+					{
+						fragmentWithextension = newFragment + newExtension;
+						try
+						{
+							String lastPiece = PathHelper.GetLastPiece(link);
+							guess = link.replace(lastPiece, fragmentWithextension);
+							HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+							huc.setRequestMethod("HEAD");
+							int responseCode = huc.getResponseCode();
+							
+							if(responseCode == 200)
+								successGuesses.add(guess);
+						}
+						catch(MalformedURLException ex){}
+						catch(IOException ex){}
+					}
 				}
 			}
 			catch(URISyntaxException ex){}
@@ -258,7 +291,7 @@ public class DiscoverHelper {
 		return links;
 	}
 	
-	private static Set<String> GuessExtensions(Set<String> links)
+	/*private static Set<String> GuessExtensions(Set<String> links)
 	{
 		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
@@ -279,7 +312,7 @@ public class DiscoverHelper {
 							guess = uri.getPath().replace(extension, newExtension);
 						}
 						else
-							guess = uri.toString() + newExtension;
+							guess = uri.getPath() + newExtension;
 						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
 						huc.setRequestMethod("HEAD");
 						int responseCode = huc.getResponseCode();
@@ -298,7 +331,7 @@ public class DiscoverHelper {
 		
 		return links;
 		
-	}
+	}*/
 
 	/**
 	 * This code is for demonstrating techniques for submitting an HTML form. Fuzzer code would need to be
@@ -308,7 +341,7 @@ public class DiscoverHelper {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	private static void doFormPost(WebClient webClient) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+	/*private static void doFormPost(WebClient webClient) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
 		HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit/product.jsp?prodid=26");
 		List<HtmlForm> forms = page.getForms();
 		for (HtmlForm form : forms) {
@@ -318,4 +351,5 @@ public class DiscoverHelper {
 			System.out.println(submit.<HtmlPage> click().getWebResponse().getContentAsString());
 		}
 	} 
+	}*/
 }
