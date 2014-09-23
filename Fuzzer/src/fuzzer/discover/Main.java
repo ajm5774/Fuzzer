@@ -89,7 +89,7 @@ public class Main {
 		}
 		
 
-		System.out.println(DiscoverHelper.Discover(url, common_words));
+		DiscoverHelper.Discover(url, common_words);
 		
 		
 	}

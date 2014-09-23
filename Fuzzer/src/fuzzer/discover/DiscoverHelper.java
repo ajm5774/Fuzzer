@@ -29,7 +29,7 @@ public class DiscoverHelper {
 	public static String[] _commonExtensions = {"", ".php", ".jsp"};
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		System.out.println(Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt"));
+		Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt");
 	}
 	
 	//==================================================Public Methods=============================================================================
@@ -42,9 +42,16 @@ public class DiscoverHelper {
 		String[] commonWords = GetCommonWords(fileName);
 		
 		try {
+			System.out.println("Page Discovery (may take ~5-10 seconds)");
 			Set<String> urls = DiscoverPages(url, commonWords);
-			result += PrintHelper.PagesToString(urls);
-			result += DiscoverInputs(urls);
+			String pages = PrintHelper.PagesToString(urls);
+			result += pages;
+			System.out.println(pages);
+			
+			System.out.println("Input Discovery (may take ~5-10 seconds)");
+			String inputs = DiscoverInputs(urls);
+			result += inputs;
+			System.out.println(inputs);
 		}
 		catch (Exception e)
 		{
@@ -59,7 +66,7 @@ public class DiscoverHelper {
 		Set<String> linkStrings = new HashSet<String>();
 
 		UniqueLinks = new HashSet<String>();
-		linkStrings = GetLinks(url, true);
+		linkStrings = GetLinks(url, false);
 		linkStrings = GuessPages(linkStrings, commonWords);
 		
 		return linkStrings;
@@ -123,6 +130,11 @@ public class DiscoverHelper {
 	    
 	}
 	
+	
+	/*
+	 * This isn't working right now for some reason. The only other way to get cookies i saw
+	 * was through servlets.
+	 */
 	private static Set<Cookie> GetCookies(Set<String> urls) throws MalformedURLException
 	{
 		WebClient webClient = new WebClient();
@@ -143,7 +155,7 @@ public class DiscoverHelper {
 	{
 		WebClient webClient = new WebClient();
 		webClient.getOptions().setJavaScriptEnabled(true);
-		webClient.getOptions().setTimeout(2000);
+		webClient.getOptions().setTimeout(5000);
 		
 		Set<String> inputs = new HashSet<String>();
 		for(String url: urls)
@@ -161,6 +173,12 @@ public class DiscoverHelper {
 		return inputs;
 	}
 	
+	/**
+	 * Get the parameters for a url.
+	 * ex somesite.com/home?var=value would have the parameter var=value
+	 * @param urls
+	 * @return
+	 */
 	private static Map<String, List<String>> GetUrlParams(Set<String> urls)
 	{
 		Map<String, List<String>> result = new HashMap<String, List<String>>();
@@ -185,29 +203,31 @@ public class DiscoverHelper {
 		return result;
 	}
 	
-	
 	private static Set<String> UniqueLinks;
 	private static Set<String> GetLinks(String url, boolean recursive)
 	{
 		WebClient webClient = new WebClient();
 		webClient.getOptions().setJavaScriptEnabled(true);
-		
 		HtmlPage page;
 		try
 		{
 			page = webClient.getPage(url);
 			List<HtmlAnchor> anchors = page.getAnchors();
 			String href;
+			String lastPiece;
 			for(HtmlAnchor anchor: anchors)
 			{
 				try
 				{
 					href = anchor.getHrefAttribute();
 					
+					href = PathHelper.RemoveTag(href);
 					if(!href.startsWith("http"))
 					{
-						String lastPiece = PathHelper.GetLastPiece(url);
-						url = url.replace(lastPiece, "");
+						lastPiece = PathHelper.GetLastPiece(url);
+						if(!lastPiece.isEmpty() && !lastPiece.equals("/"))
+							url = url.replace(lastPiece, "");
+						
 						href = PathHelper.Combine(new String[]{url, href});
 					}
 
@@ -222,39 +242,49 @@ public class DiscoverHelper {
 				catch(MalformedURLException ex){}
 			}
 		}
-		catch(MalformedURLException ex){System.err.println("GetLinks: " + ex.getMessage());}
+		catch(MalformedURLException ex){
+			System.err.println("GetLinks: " + ex.getMessage());
+			}
 		catch(IOException ex){System.err.println("GetLinks: " + ex.getMessage());}
 		
 		return UniqueLinks;
 	}
 	
+	/**
+	 * Tries replacing the end of links with common words with different extensions.
+	 * @param links
+	 * @param commonWords
+	 * @param recursive
+	 * @return
+	 */
 	private static Set<String> GuessPages(Set<String> links, String[] commonWords)
 	{
 		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
-		String guess, fragmentWithextension;
+		String guess, fragmentWithExtension;
+		
+		Set<String> linksNoLastPiece = new HashSet<String>();
 		
 		for(String link: links)
+		{
+			try {
+				linksNoLastPiece.add(PathHelper.RemoveLastPiece(link));
+			} catch (MalformedURLException e){}
+		}
+		
+		for(String link: linksNoLastPiece)
 		{
 			try
 			{
 				uri = new URI(link);
 				for(String newFragment: commonWords)
 				{
-					
 					for(String newExtension: _commonExtensions)
 					{
-						fragmentWithextension = "/"+newFragment + newExtension;
+						fragmentWithExtension = "/"+newFragment + newExtension;
 						try
 						{
-							String lastPiece = PathHelper.GetLastPiece(link);
-							boolean endsWithExtension = false;
-							for(String ce: _commonExtensions)
-								if (ce.length() > 0 && link.endsWith(ce))
-									endsWithExtension = true;
-							if(!endsWithExtension)
-							{
-								guess = link+fragmentWithextension;
+							guess = PathHelper.Combine(new String[]{link, fragmentWithExtension});
 							if (!links.contains(guess))
 							{
 								HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
@@ -266,26 +296,20 @@ public class DiscoverHelper {
 									successGuesses.add(guess);
 								}
 							}
-							}
 						}
-						catch(MalformedURLException ex){System.out.println(ex.getMessage());}
-						catch(IOException ex){System.out.println(ex.getMessage());}
+						catch(MalformedURLException ex){System.err.println(ex.getMessage());}
+						catch(IOException ex){System.err.println(ex.getMessage());}
+						catch(IllegalArgumentException ex){System.err.println(ex.getMessage());}
 					}
 				}
 			}
-			catch(URISyntaxException ex){System.out.println(ex.getMessage());}
+			catch(URISyntaxException ex){System.err.println(ex.getMessage());}
 		}
 		
 		links.addAll(successGuesses);
 		
-		if(successGuesses.size() > 0)
-		{
-			links.addAll(GuessPages(successGuesses, commonWords));
-			return links;
-		}
-		else
-		{
-			return links;
-		}
+
+		links.addAll(successGuesses);
+		return links;
 	}
 }
