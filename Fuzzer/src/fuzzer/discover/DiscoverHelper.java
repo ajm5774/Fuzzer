@@ -34,9 +34,13 @@ public class DiscoverHelper {
 	
 	public static String[] _pageGuesses = {"admin", "edit"};
 	public static String[] _commonExtensions = {".php", ".jsp"};
+	public static File common_usernames = new File("./common_usernames.txt");
+	public static File common_passwords = new File("./common_passwords.txt");
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		System.out.println(Discover("http://torrentz.eu/", ""));
+		//System.out.println(Discover("http://torrentz.eu/", ""));
+		WebClient webClient =  new WebClient();
+		customAuth(webClient, "dwa", common_usernames, common_passwords);
 	}
 	
 	//==================================================Public Methods=============================================================================
@@ -306,4 +310,34 @@ public class DiscoverHelper {
 			System.out.println(submit.<HtmlPage> click().getWebResponse().getContentAsString());
 		}
 	} 
+	private static void customAuth(WebClient webClient, String address, File usernamesFile, File passwordsFile) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+		//HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit/product.jsp?prodid=26");
+		HtmlPage page;
+	
+		String[] common_users = GetCommonWords(usernamesFile.toString());
+		String[] common_passwords = GetCommonWords(passwordsFile.toString());
+		
+		if (address.compareTo("dwa") == 0){
+			page = webClient.getPage("http://127.0.0.1/dvwa/");
+		}
+		else {
+			page = webClient.getPage("http://127.0.0.1/bodgeit");
+		}
+		
+		List<HtmlForm> forms = page.getForms();
+		for (HtmlForm form : forms) {
+			for (String username: common_users){
+				for (String password: common_passwords){
+					try{
+						form.getInputByName("username").setValueAttribute(username);
+						form.getInputByName("password").setValueAttribute(password);
+						page = (HtmlPage) form.getInputByName("Login").click();
+						
+					}
+					catch(MalformedURLException ex){}
+					catch(IOException ex){}
+				}
+			}
+		}
+	}
 }
