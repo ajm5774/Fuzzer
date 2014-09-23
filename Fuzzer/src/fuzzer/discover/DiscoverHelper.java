@@ -42,7 +42,7 @@ public class DiscoverHelper {
 		String result = "";
 		
 		String[] commonWords = GetCommonWords(fileName);
-		
+
 		try {
 			Set<String> urls = DiscoverPages(url, commonWords);
 			result += PrintHelper.PagesToString(urls);
@@ -62,7 +62,11 @@ public class DiscoverHelper {
 
 		linkStrings = GetLinks(url, true);
 		linkStrings = GuessPages(linkStrings, commonWords);
-		linkStrings = GuessExtensions(linkStrings);
+		//linkStrings = GuessExtensions(linkStrings);
+		for (String ls : linkStrings)
+		{
+			System.out.println("Link String after GuessExtensions: "+ls);
+		}
 		
 		return linkStrings;
 		
@@ -120,7 +124,7 @@ public class DiscoverHelper {
 		}
 		catch (IOException e){}
 		
-	    return commonWordsString.split("[ |\r\n|,|\n|\t]*");
+	    return commonWordsString.split("[ |\r\n|,|\n|\t]+");
 	    
 	}
 	
@@ -143,6 +147,7 @@ public class DiscoverHelper {
 		Set<String> inputs = new HashSet<String>();
 		for(String url: urls)
 		{
+			try{
 			WebClient webClient = new WebClient();
 			webClient.setJavaScriptEnabled(true);
 			
@@ -151,6 +156,8 @@ public class DiscoverHelper {
 			List<HtmlElement> inputElements = page.getElementsByName("input");
 			for(HtmlElement ele: inputElements)
 				inputs.add(ele.toString());
+			}
+			catch(Exception ex){System.out.println(ex.getMessage());}
 		}
 		return inputs;
 	}
@@ -163,14 +170,17 @@ public class DiscoverHelper {
 		for(String urlString: urls)
 		{
 			qIndex = urlString.indexOf("?");
-			String[] params = urlString.substring(qIndex).split("&");
-			rootUrl = urlString.substring(0, qIndex - 1);
-			
-			if(params.length > 0 && result.containsKey(rootUrl))
-				result.put(rootUrl, new ArrayList<String>());
-			
-			for(String param: params)
-				result.get(rootUrl).add(param);
+			if (qIndex != -1)
+			{
+				String[] params = urlString.substring(qIndex).split("&");
+				rootUrl = urlString.substring(0, qIndex - 1);
+				
+				if(params.length > 0 && result.containsKey(rootUrl))
+					result.put(rootUrl, new ArrayList<String>());
+				
+				for(String param: params)
+					result.get(rootUrl).add(param);
+			}
 		}
 		
 		return result;
@@ -186,14 +196,14 @@ public class DiscoverHelper {
 		try
 		{
 			page = webClient.getPage(url);
-			System.out.println(url);
+			System.out.println("URL:"+url);
 			List<HtmlAnchor> anchors = page.getAnchors();
 			String href;
 			for(HtmlAnchor anchor: anchors)
 			{
 				href = anchor.getHrefAttribute();
 				System.out.println(href);
-				if(new URL(href).getHost() == new URL(url).getHost())
+				if(new URL(href).getHost().equals(new URL(url).getHost()))
 				{
 					linkStrings.add(href);
 					if(recursive)
@@ -203,7 +213,7 @@ public class DiscoverHelper {
 		}
 		catch(MalformedURLException ex){System.out.println(ex.getMessage());}
 		catch(IOException ex){System.out.println(ex.getMessage());}
-		
+		catch(Exception ex){System.out.println("General exception: "+ex.getMessage());}
 		return linkStrings;
 	}
 	
@@ -220,18 +230,29 @@ public class DiscoverHelper {
 				uri = new URI(link);
 				for(String newFragment: commonWords)
 				{
+					for (String newExtension : _commonExtensions)
 					try
 					{
-						guess = uri.toString().replace(uri.getFragment(), newFragment);
+						//guess = uri.toString().replace(uri.getFragment(), newFragment);
+						guess = uri.toString()+"/"+newFragment;
 						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
 						huc.setRequestMethod("HEAD");
 						int responseCode = huc.getResponseCode();
 						
 						if(responseCode == 200)
 							successGuesses.add(guess);
+						
+						guess+=newExtension;
+						huc = (HttpURLConnection) new URL(guess).openConnection();
+						huc.setRequestMethod("HEAD");
+						responseCode = huc.getResponseCode();
+						
+						if(responseCode == 200)
+							successGuesses.add(guess);
 					}
 					catch(MalformedURLException ex){}
 					catch(IOException ex){}
+					catch(Exception ex){System.out.println("General Exception: "+ex.getMessage());}
 				}
 			}
 			catch(URISyntaxException ex){}
@@ -263,7 +284,7 @@ public class DiscoverHelper {
 							guess = uri.getPath().replace(extension, newExtension);
 						}
 						else
-							guess = uri.getPath() + newExtension;
+							guess = uri.toString() + newExtension;
 						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
 						huc.setRequestMethod("HEAD");
 						int responseCode = huc.getResponseCode();
