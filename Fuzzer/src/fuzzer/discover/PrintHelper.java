@@ -10,7 +10,8 @@ public class PrintHelper {
 	
 	private static String GetPrintLabel(String label)
 	{
-		return "------------------------------" + label + "------------------------------\n";
+
+		return "------------------------------" + label + "------------------------------\r\n";
 	}
 	
 	public static String UrlParamsToString(Map<String, List<String>> urlParams)

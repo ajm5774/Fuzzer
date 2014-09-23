@@ -33,7 +33,7 @@ import com.gargoylesoftware.htmlunit.util.Cookie;
 public class DiscoverHelper {
 	
 	public static String[] _pageGuesses = {"admin", "edit", "login"};
-	public static String[] _commonExtensions = {".php", ".jsp"};
+	public static String[] _commonExtensions = {".php", ".jsp"}; ;
 
 	//==================================================Public Methods=============================================================================
 	
