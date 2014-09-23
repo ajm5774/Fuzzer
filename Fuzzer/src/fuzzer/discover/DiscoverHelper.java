@@ -33,7 +33,7 @@ import com.gargoylesoftware.htmlunit.util.Cookie;
 public class DiscoverHelper {
 	
 	public static String[] _pageGuesses = {"admin", "edit", "login"};
-	public static String[] _commonExtensions = {".php", ".jsp"}; ;
+	public static String[] _commonExtensions = {"",".php", ".jsp"}; ;
 
 	//==================================================Public Methods=============================================================================
 	
@@ -60,7 +60,7 @@ public class DiscoverHelper {
 	{
 		Set<String> linkStrings = new HashSet<String>();
 
-		linkStrings = GetLinks(url, true);
+		linkStrings = GetLinks(url, false);
 		linkStrings = GuessPages(linkStrings, commonWords);
 		
 		return linkStrings;
@@ -203,7 +203,6 @@ public class DiscoverHelper {
 				try
 				{
 					href = anchor.getHrefAttribute();
-					
 					if(!href.startsWith("http"))
 					{
 						String lastPiece = PathHelper.GetLastPiece(url);
@@ -266,29 +265,49 @@ public class DiscoverHelper {
 					catch(Exception ex){System.out.println("General Exception: "+ex.getMessage());}*/
 					for(String newExtension: _commonExtensions)
 					{
-						fragmentWithextension = newFragment + newExtension;
+						fragmentWithextension = "/"+newFragment + newExtension;
 						try
 						{
 							String lastPiece = PathHelper.GetLastPiece(link);
-							guess = link.replace(lastPiece, fragmentWithextension);
-							HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
-							huc.setRequestMethod("HEAD");
-							int responseCode = huc.getResponseCode();
-							
-							if(responseCode == 200)
-								successGuesses.add(guess);
+							boolean endsWithExtension = false;
+							for(String ce: _commonExtensions)
+								if (ce.length() > 0 && link.endsWith(ce))
+									endsWithExtension = true;
+							if(!endsWithExtension)
+							{
+								guess = link+fragmentWithextension;
+							if (!links.contains(guess))
+							{
+								HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+								huc.setRequestMethod("HEAD");
+								int responseCode = huc.getResponseCode();
+								
+								if(responseCode == 200)
+								{
+									successGuesses.add(guess);
+								}
+							}
+							}
 						}
-						catch(MalformedURLException ex){}
-						catch(IOException ex){}
+						catch(MalformedURLException ex){System.out.println(ex.getMessage());}
+						catch(IOException ex){System.out.println(ex.getMessage());}
 					}
 				}
 			}
-			catch(URISyntaxException ex){}
+			catch(URISyntaxException ex){System.out.println(ex.getMessage());}
 		}
 		
 		links.addAll(successGuesses);
 		
-		return links;
+		if(successGuesses.size() > 0)
+		{
+			links.addAll(GuessPages(successGuesses, commonWords));
+			return links;
+		}
+		else
+		{
+			return links;
+		}
 	}
 	
 	/*private static Set<String> GuessExtensions(Set<String> links)
