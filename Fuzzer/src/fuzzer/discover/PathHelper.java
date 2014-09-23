@@ -1,5 +1,8 @@
 package fuzzer.discover;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public class PathHelper {
 	public static String Combine(String[] segments)
 	{
@@ -17,5 +20,16 @@ public class PathHelper {
 				result += "/" + segment;
 		}
 		return result;
+	}
+	
+	public static String GetLastPiece(String url) throws MalformedURLException
+	{
+		String file = new URL(url).getFile();
+		int slashIndex = file.lastIndexOf("/");
+		String lastPiece = "";
+		if(slashIndex > 0)
+			lastPiece = file.substring(slashIndex);
+		
+		return lastPiece;
 	}
 }

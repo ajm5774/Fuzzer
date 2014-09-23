@@ -25,23 +25,11 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
 public class DiscoverHelper {
-	private static String url;
-	private static String custom_auth;
-	private static String common_words;
-	
-	//Used for fuzz test
-	private static boolean test = false;
-	private static File vectors;
-	private static File sensitive;
-	private static boolean random = false;
-	private static int slow = 500;
-	
-	
 	public static String[] _pageGuesses = {"admin", "edit"};
-	public static String[] _commonExtensions = {".php", ".jsp"};
+	public static String[] _commonExtensions = {"", ".php", ".jsp"};
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		System.out.println(Discover("http://127.0.0.1:8080/bodgeit/", "CommonWordsTest.txt"));
+		System.out.println(Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt"));
 	}
 	
 	//==================================================Public Methods=============================================================================
@@ -70,7 +58,7 @@ public class DiscoverHelper {
 		Set<String> linkStrings = new HashSet<String>();
 
 		linkStrings = GetLinks(url, false);
-		//linkStrings = GuessPages(linkStrings, commonWords);
+		linkStrings = GuessPages(linkStrings, commonWords);
 		//linkStrings = GuessExtensions(linkStrings);
 		
 		return linkStrings;
@@ -214,7 +202,11 @@ public class DiscoverHelper {
 					href = anchor.getHrefAttribute();
 					
 					if(!href.startsWith("http"))
+					{
+						String lastPiece = PathHelper.GetLastPiece(url);
+						url = url.replace(lastPiece, "");
 						href = PathHelper.Combine(new String[]{url, href});
+					}
 
 					if(new URL(href).getHost().equals(new URL(url).getHost()))
 					{
@@ -237,7 +229,7 @@ public class DiscoverHelper {
 	{
 		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
-		String guess;
+		String guess, fragmentWithextension;
 		
 		for(String link: links)
 		{
@@ -246,18 +238,23 @@ public class DiscoverHelper {
 				uri = new URI(link);
 				for(String newFragment: commonWords)
 				{
-					try
+					for(String newExtension: _commonExtensions)
 					{
-						guess = uri.toString().replace(uri.getFragment(), newFragment);
-						HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
-						huc.setRequestMethod("HEAD");
-						int responseCode = huc.getResponseCode();
-						
-						if(responseCode == 200)
-							successGuesses.add(guess);
+						fragmentWithextension = newFragment + newExtension;
+						try
+						{
+							String lastPiece = PathHelper.GetLastPiece(link);
+							guess = link.replace(lastPiece, fragmentWithextension);
+							HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+							huc.setRequestMethod("HEAD");
+							int responseCode = huc.getResponseCode();
+							
+							if(responseCode == 200)
+								successGuesses.add(guess);
+						}
+						catch(MalformedURLException ex){}
+						catch(IOException ex){}
 					}
-					catch(MalformedURLException ex){}
-					catch(IOException ex){}
 				}
 			}
 			catch(URISyntaxException ex){}
@@ -268,7 +265,7 @@ public class DiscoverHelper {
 		return links;
 	}
 	
-	private static Set<String> GuessExtensions(Set<String> links)
+	/*private static Set<String> GuessExtensions(Set<String> links)
 	{
 		Set<String> successGuesses = new HashSet<String>();
 		URI uri;
@@ -308,7 +305,7 @@ public class DiscoverHelper {
 		
 		return links;
 		
-	}
+	}*/
 
 	/**
 	 * This code is for demonstrating techniques for submitting an HTML form. Fuzzer code would need to be
