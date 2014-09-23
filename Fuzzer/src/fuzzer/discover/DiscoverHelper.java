@@ -25,6 +25,17 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
 public class DiscoverHelper {
+	private static String url;
+	private static String custom_auth;
+	private static String common_words;
+	
+	//Used for fuzz test
+	private static boolean test = false;
+	private static File vectors;
+	private static File sensitive;
+	private static boolean random = false;
+	private static int slow = 500;
+	
 	
 	public static String[] _pageGuesses = {"admin", "edit"};
 	public static String[] _commonExtensions = {".php", ".jsp"};
