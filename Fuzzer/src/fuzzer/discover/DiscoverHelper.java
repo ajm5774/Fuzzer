@@ -16,11 +16,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 
@@ -28,10 +31,7 @@ public class DiscoverHelper {
 	public static String[] _pageGuesses = {"admin", "edit"};
 	public static String[] _commonExtensions = {"", ".php", ".jsp"};
 
-	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		System.out.println(Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt"));
-	}
-	
+
 	//==================================================Public Methods=============================================================================
 	
 	
@@ -48,6 +48,7 @@ public class DiscoverHelper {
 		}
 		catch (Exception e)
 		{
+	
 			e.printStackTrace(System.err);
 		}
 		
@@ -59,7 +60,7 @@ public class DiscoverHelper {
 		Set<String> linkStrings = new HashSet<String>();
 
 		UniqueLinks = new HashSet<String>();
-		linkStrings = GetLinks(url, true);
+		linkStrings = GetLinks(url, false);
 		linkStrings = GuessPages(linkStrings, commonWords);
 		
 		return linkStrings;
@@ -224,6 +225,7 @@ public class DiscoverHelper {
 		}
 		catch(MalformedURLException ex){System.err.println("GetLinks: " + ex.getMessage());}
 		catch(IOException ex){System.err.println("GetLinks: " + ex.getMessage());}
+		catch(Exception ex){System.out.println(ex.getMessage());}
 		
 		return UniqueLinks;
 	}
@@ -287,5 +289,71 @@ public class DiscoverHelper {
 		{
 			return links;
 		}
+	}
+	
+	public static void customAuth(String address, String usernamesFile, String passwordsFile, String url, boolean custom) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+		//HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit/product.jsp?prodid=26");
+		WebClient webClient = new WebClient();
+		HtmlPage page;
+		String successURL;
+
+		String[] common_users = GetCommonWords(usernamesFile);
+		String[] common_passwords = GetCommonWords(passwordsFile);
+		if (custom)
+		{
+			if (address.compareTo("dvwa") == 0){
+				page = webClient.getPage("http://127.0.0.1/dvwa/");
+				successURL = ("http://127.0.0.1/dvwa/index.php");
+			}
+			else {
+				page = webClient.getPage("http://127.0.0.1/bodgeit");
+				successURL = ("http://127.0.0.1/bodgeit/logout");
+			}
+			List<HtmlForm> forms = page.getForms();
+			for (HtmlForm form : forms) 
+			{
+				for (String username: common_users)
+				{
+					for (String password: common_passwords)
+					{
+						try
+						{
+							form.getInputByName("username").setValueAttribute(username);
+							form.getInputByName("password").setValueAttribute(password);
+							page = (HtmlPage) form.getInputByName("Login").click();
+							
+							if (page.getUrl().toString().compareTo(successURL) == 0)
+							{
+								System.out.println("SUCCESS\n");
+								System.out.print("USERNAME: " + username + "\n");
+								System.out.print("PASSWORD: " + password + "\n");
+								return;
+							}
+							
+						}
+						catch(IOException ex){}
+					}
+				}
+			}
+		}
+		else
+		{
+			page = webClient.getPage(url);
+			String pageString = page.getWebResponse().getContentAsString();
+			List<String> allMatches = new ArrayList<String>();
+			Matcher m = Pattern.compile("(.*[u|U]sername|[p|P]assword)[=|:|-|;|.|,| ]*[a-zA-Z0-9!@$#%^&*()]*.*")
+					.matcher(pageString);
+			while(m.find())
+			{
+				allMatches.add(m.group());
+			}
+			System.out.println(allMatches);
+			return;
+			
+
+
+		}
+		
+		
 	}
 }

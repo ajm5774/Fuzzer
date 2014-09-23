@@ -9,7 +9,7 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 public class Main {
 	
 
-	public static void main(String[] args)
+	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
 		String url;
 		String custom_auth = null;
@@ -88,6 +88,8 @@ public class Main {
 			return;
 		}
 		
+		boolean isCustom = custom_auth == null ? false : true;
+		DiscoverHelper.customAuth(custom_auth,"./common_usernames.txt","common_passwords.txt",url,isCustom);
 
 		System.out.println(DiscoverHelper.Discover(url, common_words));
 		
