@@ -22,6 +22,8 @@ public class Main {
 		boolean random = false;
 		int slow = 500;
 		
+		if(args.length == 0)
+			return;
 
 
 
@@ -88,11 +90,6 @@ public class Main {
 			return;
 		}
 		
-
-		System.out.println(DiscoverHelper.Discover(url, common_words));
-		
-		
-	}
-	
-}
-		
+		DiscoverHelper.Discover(url, common_words, custom_auth);
+	}	
+}		

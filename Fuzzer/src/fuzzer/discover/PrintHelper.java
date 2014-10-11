@@ -14,7 +14,7 @@ public class PrintHelper {
 		return "------------------------------" + label + "------------------------------\r\n";
 	}
 	
-	public static String UrlParamsToString(Map<String, List<String>> urlParams)
+	public static String UrlParamsToString(Map<String, Set<String>> urlParams)
 	{
 		String result = "";
 		result += GetPrintLabel("Url Parameter Inputs");
