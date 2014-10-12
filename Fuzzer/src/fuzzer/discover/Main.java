@@ -6,6 +6,8 @@ import java.net.MalformedURLException;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 
+import fuzzer.test.TestHelper;
+
 public class Main {
 	
 
@@ -16,9 +18,9 @@ public class Main {
 		String common_words = null;
 		
 		//Used for fuzz test
+		String vectors = null;
+		String sensitive = null;
 		boolean test = false;
-		File vectors = null;
-		File sensitive = null;
 		boolean random = false;
 		int slow = 500;
 		
@@ -53,13 +55,11 @@ public class Main {
 			{
 				if (option.startsWith("--vectors="))
 				{
-					String filename = option.substring(10);
-					vectors = new File(filename);
+					vectors = option.substring(10);
 				}
 				if (option.startsWith("--sensitive="))
 				{
-					String filename = option.substring(12);
-					sensitive = new File(filename);
+					sensitive = option.substring(12);
 				}
 				if (option.startsWith("--random="))
 				{
@@ -91,5 +91,7 @@ public class Main {
 		}
 		
 		DiscoverHelper.Discover(url, common_words, custom_auth);
+		if(test)
+			TestHelper.Test(url, common_words,vectors , sensitive, random, slow);
 	}	
 }		

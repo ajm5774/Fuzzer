@@ -76,7 +76,7 @@ public class DiscoverHelper {
 		HashMap<String, HtmlPage> pages = new HashMap<String, HtmlPage>();
 
 		UniqueLinks = new HashMap<String, HtmlPage>();
-		pages = GetLinks(url, false);
+		pages = GetLinks(url, true);
 		pages = GuessPages(pages, commonWords);
 		
 		return pages;
@@ -124,13 +124,18 @@ public class DiscoverHelper {
 	private static Set<String> GetElements(HashMap<String, HtmlPage> pages, String name) throws MalformedURLException, IOException
 	{
 		Set<String> allElements = new HashSet<String>();
-		for(HtmlPage page: pages.values())
+		HtmlPage page;
+		for(String url: pages.keySet())
 		{
-			List<DomElement> elements = page.getElementsByTagName("input");
-			
-			for(DomElement ele: elements)
+			page = pages.get(url);
+			if(page != null)
 			{
-				allElements.add(ele.asXml());
+				List<DomElement> elements = (List<DomElement>) page.getElementsByTagName(name);
+				
+				for(DomElement ele: elements)
+				{
+					allElements.add(ele.asXml());
+				}
 			}
 		}
 		return allElements;
@@ -174,7 +179,17 @@ public class DiscoverHelper {
 	private static HashMap<String, HtmlPage> GetLinks(String url, boolean recursive)
 	{
 		HtmlPage page;
-		page = UniqueLinks.get(url);
+		if(UniqueLinks.containsKey(url))
+			page = UniqueLinks.get(url);
+		else
+		{
+			try {
+				page = client.getPage(url);
+			} catch(Exception ex)
+			{
+				return null;
+			}
+		}
 		List<HtmlAnchor> anchors = page.getAnchors();
 		String href;
 		String lastPiece;
@@ -197,7 +212,7 @@ public class DiscoverHelper {
 				if(new URL(href).getHost().equals(new URL(url).getHost())
 						&& !UniqueLinks.containsKey(href))
 				{
-					page = client.getPage(url);
+					page = client.getPage(href);
 					UniqueLinks.put(href, page);
 					if(recursive)
 						GetLinks(href, recursive);
@@ -334,9 +349,6 @@ public class DiscoverHelper {
 			}
 			System.out.println(allMatches);
 			return;
-			
-
-
 		}
 	}
 }

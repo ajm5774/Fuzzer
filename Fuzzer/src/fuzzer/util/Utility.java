@@ -11,6 +11,11 @@ public class Utility {
 
 	public static String[] GetDelimStrings(String fileName)
 	{
+		return GetDelimStrings(fileName, "");
+	}
+	
+	public static String[] GetDelimStrings(String fileName, String splitString)
+	{
 		if(fileName == null || fileName.isEmpty())
 			return new String[0];
 
@@ -44,7 +49,10 @@ public class Utility {
 		}
 		catch (IOException e){}
 		
-	    return commonWordsString.split("[ |\r\n|,|\n|\t]+");
+		if(splitString.isEmpty())
+			return commonWordsString.split("[ |\r\n|,|\n|\t]+");
+		else
+			return commonWordsString.split(splitString);
 	    
 	}
 	

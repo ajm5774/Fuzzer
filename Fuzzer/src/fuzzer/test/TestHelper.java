@@ -21,13 +21,13 @@ import fuzzer.discover.DiscoverHelper;
 import fuzzer.util.Utility;
 
 public class TestHelper {
-	private static Pattern keywordPattern = Pattern.compile("[sql|SQL|exception|malformed]");
 	private static WebClient client = new WebClient();
+	private static String[] sensitives;
 	
-	public void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random)
+	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout)
 	{
-		String[] vectors = Utility.GetDelimStrings(vectorFileName);
-		String[] sinsitives = Utility.GetDelimStrings(sensitiveFileName);
+		String[] vectors = Utility.GetDelimStrings(vectorFileName, "\r\n");
+		sensitives = Utility.GetDelimStrings(sensitiveFileName, "\r\n");
 		String[] commonWords = Utility.GetDelimStrings(commonFileName);
 		
 		try
@@ -45,7 +45,7 @@ public class TestHelper {
 		
 	}
 	
-	private void SendToForm(String vector, HashMap<String, HtmlPage> pages)
+	private static void SendToForm(String vector, HashMap<String, HtmlPage> pages)
 	{
 		List<HtmlElement> inputs;
 		List<DomElement> forms;
@@ -71,7 +71,7 @@ public class TestHelper {
 					try {
 						responsePage = submitButton.click();
 						
-						if(keywordPattern.matcher(responsePage.toString()).find())
+						if(SensitiveDataleaked(responsePage, sensitives))
 							System.out.println("The form submitting to " + formEle.getAttribute("action") +
 									" may have a potential vulnerability from vector " + vector + ".");
 					} catch (IOException e) {
@@ -81,20 +81,22 @@ public class TestHelper {
 		}
 	}
 	
-	private void SendToUrl(String vector, Map<String, Set<String>> urlParams)
+	private static void SendToUrl(String vector, Map<String, Set<String>> urlParams)
 	{
 		String vectoredUrl = "";
 		String vectoredParams = "";
 		Set<String> vectoredParamSet;
+		String[] vectoredParamList;
 		String[] vectoredParamArray;
 		Page responsePage;
 		
 		for(String rootUrl : urlParams.keySet())
 		{
 			vectoredParamSet = urlParams.get(rootUrl);
-			for(String param : vectoredParamSet)
-				param += "=" + vector;
 			vectoredParamArray = vectoredParamSet.toArray(new String[vectoredParamSet.size()]);
+			for(int i = 0; i < vectoredParamArray.length; i++)
+				vectoredParamArray[i] += "=" + vector;
+			
 			vectoredParams = Utility.Implode("&", vectoredParamArray);
 			
 			vectoredUrl = rootUrl + "?" + vectoredParams;
@@ -102,20 +104,31 @@ public class TestHelper {
 			try {
 				responsePage = client.getPage(vectoredUrl);
 				
-				if(keywordPattern.matcher(responsePage.toString()).find())
-					System.out.println("The form submitting to " + rootUrl +
-							" may have a potential vulnerability from vector " + vector + ".");
+				if(SensitiveDataleaked(responsePage, sensitives))
+					System.out.println("The parameters for " + rootUrl +
+							" may have a potential vulnerability from vector (" + vector + ").");
 				
 			} catch (FailingHttpStatusCodeException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.err.println(e.getMessage());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.err.println(e.getMessage());
 			}
 		}
+	}
+	
+	private static boolean SensitiveDataleaked(Page response, String[] keywords)
+	{
+		String responseString = response.toString();
+		for(String keyword: keywords)
+		{
+			if(responseString.contains(keyword))
+				return true;
+		}
+		
+		return false;
 	}
 }

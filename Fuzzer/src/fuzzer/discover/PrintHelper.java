@@ -36,7 +36,7 @@ public class PrintHelper {
 		
 		for(String inputEle: inputEles)
 		{
-			result += inputEle + "\r\n";
+			result += inputEle;
 		}
 		
 		return result;
