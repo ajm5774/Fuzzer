@@ -142,11 +142,11 @@ public class DiscoverHelper {
 	 * @param urls
 	 * @return
 	 */
-	private static Map<String, Set<String>> GetUrlParams(Set<String> urls)
+	public static Map<String, Set<String>> GetUrlParams(Set<String> urls)
 	{
 		Map<String, Set<String>> result = new HashMap<String, Set<String>>();
 		String rootUrl;
-		int qIndex;
+		int qIndex, qLoc;
 		for(String urlString: urls)
 		{
 			qIndex = urlString.indexOf("?");
@@ -159,7 +159,11 @@ public class DiscoverHelper {
 					result.put(rootUrl, new HashSet<String>());
 				
 				for(String param: params)
-					result.get(rootUrl).add(param);
+				{
+					qLoc = param.indexOf('=');
+					if(qLoc >= 0)
+						result.get(rootUrl).add(param.substring(0, qLoc));
+				}
 			}
 		}
 		

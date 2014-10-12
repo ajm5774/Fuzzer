@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Set;
 
 public class Utility {
 
@@ -45,6 +46,16 @@ public class Utility {
 		
 	    return commonWordsString.split("[ |\r\n|,|\n|\t]+");
 	    
+	}
+	
+	public static String Implode(String glue, String[] strArray)
+	{
+	    String ret = "";
+	    for(int i=0;i<strArray.length;i++)
+	    {
+	        ret += (i == strArray.length - 1) ? strArray[i] : strArray[i] + glue;
+	    }
+	    return ret;
 	}
 
 }

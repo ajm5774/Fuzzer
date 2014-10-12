@@ -1,9 +1,11 @@
 package fuzzer.test;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,6 +22,8 @@ import fuzzer.util.Utility;
 
 public class TestHelper {
 	private static Pattern keywordPattern = Pattern.compile("[sql|SQL|exception|malformed]");
+	private static WebClient client = new WebClient();
+	
 	public void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random)
 	{
 		String[] vectors = Utility.GetDelimStrings(vectorFileName);
@@ -30,15 +34,14 @@ public class TestHelper {
 		{
 			HashMap<String, HtmlPage> pages = DiscoverHelper.DiscoverPages(url, commonWords);
 			
-			SendVectors(vectors, pages);
+			for(String vector : vectors)
+			{
+				SendToForm(vector, pages);
+				SendToUrl(vector, DiscoverHelper.GetUrlParams(pages.keySet()));
+			}
 		}
 		//TODO: we need to catch timeout exceptions in a different block
 		catch(Exception ex){}
-		
-	}
-	
-	private void SendVectors(String[] vectors, HashMap<String, HtmlPage> pages)
-	{
 		
 	}
 	
@@ -78,8 +81,41 @@ public class TestHelper {
 		}
 	}
 	
-	private void SendToUrl(String vector, HashMap<String, HtmlPage> pages)
+	private void SendToUrl(String vector, Map<String, Set<String>> urlParams)
 	{
+		String vectoredUrl = "";
+		String vectoredParams = "";
+		Set<String> vectoredParamSet;
+		String[] vectoredParamArray;
+		Page responsePage;
 		
+		for(String rootUrl : urlParams.keySet())
+		{
+			vectoredParamSet = urlParams.get(rootUrl);
+			for(String param : vectoredParamSet)
+				param += "=" + vector;
+			vectoredParamArray = vectoredParamSet.toArray(new String[vectoredParamSet.size()]);
+			vectoredParams = Utility.Implode("&", vectoredParamArray);
+			
+			vectoredUrl = rootUrl + "?" + vectoredParams;
+			
+			try {
+				responsePage = client.getPage(vectoredUrl);
+				
+				if(keywordPattern.matcher(responsePage.toString()).find())
+					System.out.println("The form submitting to " + rootUrl +
+							" may have a potential vulnerability from vector " + vector + ".");
+				
+			} catch (FailingHttpStatusCodeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 }
