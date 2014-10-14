@@ -31,7 +31,7 @@ import fuzzer.util.Utility;
 
 public class DiscoverHelper {
 	private static String[] _commonExtensions = {"", ".php", ".jsp"};
-	private static HashMap<String, HtmlPage> _alLinks;
+	private static HashSet<String> _allLinks;
 	private static HashMap<String, HtmlPage> UniqueLinks;
 	private static WebClient client = new WebClient();
 
@@ -77,6 +77,7 @@ public class DiscoverHelper {
 		HashMap<String, HtmlPage> pages = new HashMap<String, HtmlPage>();
 
 		UniqueLinks = new HashMap<String, HtmlPage>();
+		_allLinks = new HashSet<String>();
 		pages = GetLinks(url, true);
 		pages = GuessPages(pages, commonWords);
 		
@@ -88,7 +89,7 @@ public class DiscoverHelper {
 	{
 		String result = "";
 		
-		Map<String, Set<String>> urlParams = GetUrlParams(pages.keySet());
+		Map<String, Set<String>> urlParams = GetUrlParams(_allLinks);
 		result += PrintHelper.UrlParamsToString(urlParams);
 		
 		Set<String> inputEles = GetElements(pages, "input");
@@ -211,7 +212,8 @@ public class DiscoverHelper {
 					
 					href = PathHelper.Combine(new String[]{url, href});
 				}
-
+				
+				_allLinks.add(href);
 				urlNoParams = PathHelper.GetUrlNoParams(href);
 				if(new URL(href).getHost().equals(new URL(url).getHost())
 						&& !UniqueLinks.containsKey(urlNoParams))
