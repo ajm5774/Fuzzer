@@ -2,6 +2,7 @@ package fuzzer.test;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -13,8 +14,10 @@ import java.util.regex.Pattern;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import fuzzer.discover.DiscoverHelper;
@@ -48,16 +51,22 @@ public class TestHelper {
 	private static void SendToForm(String vector, HashMap<String, HtmlPage> pages)
 	{
 		List<HtmlElement> inputs;
-		List<DomElement> forms;
+		List<HtmlForm> forms;
 		HtmlElement submitButton = null;
 		Page responsePage;
+		String formAction = "";
+		
+		ArrayList<String> inputNames = new ArrayList<String>();
+		inputNames.add("input");
+		inputNames.add("textArea");
 		
 		for(HtmlPage page : pages.values())
 		{
-			forms = page.getElementsByName("form");
-			for(DomElement formEle : forms)
+			forms = page.getForms();
+			for(HtmlForm formEle : forms)
 			{
-				inputs = formEle.getElementsByTagName("input");
+				
+				inputs = formEle.getHtmlElementsByTagNames(inputNames);
 				for(HtmlElement inputEle : inputs)
 				{
 					if(inputEle.hasAttribute("type") && inputEle.getAttribute("type").equals("submit"))
@@ -72,8 +81,14 @@ public class TestHelper {
 						responsePage = submitButton.click();
 						
 						if(SensitiveDataleaked(responsePage, sensitives))
-							System.out.println("The form submitting to " + formEle.getAttribute("action") +
-									" may have a potential vulnerability from vector " + vector + ".");
+						{
+							System.out.println("--" + page.getUrl() + "--");
+							formAction = formEle.getAttribute("action");
+							if(formAction.isEmpty())
+								formAction = page.getUrl().toString();
+							System.out.println("The form submitting to '" + formAction +
+									"' may have a potential vulnerability from vector " + vector + ".");
+						}
 					} catch (IOException e) {
 					}
 				}
@@ -120,12 +135,13 @@ public class TestHelper {
 		}
 	}
 	
-	private static boolean SensitiveDataleaked(Page response, String[] keywords)
+	private static boolean SensitiveDataleaked(Page page, String[] keywords)
 	{
-		String responseString = response.toString();
+		WebResponse response = page.getWebResponse();
+	    String content = response.getContentAsString();
 		for(String keyword: keywords)
 		{
-			if(responseString.contains(keyword))
+			if(content.contains(keyword))
 				return true;
 		}
 		

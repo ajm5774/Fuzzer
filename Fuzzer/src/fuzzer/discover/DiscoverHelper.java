@@ -30,9 +30,10 @@ import com.gargoylesoftware.htmlunit.util.Cookie;
 import fuzzer.util.Utility;
 
 public class DiscoverHelper {
-	public static String[] _pageGuesses = {"admin", "edit"};
-	public static String[] _commonExtensions = {"", ".php", ".jsp"};
-	public static WebClient client = new WebClient();
+	private static String[] _commonExtensions = {"", ".php", ".jsp"};
+	private static HashMap<String, HtmlPage> _alLinks;
+	private static HashMap<String, HtmlPage> UniqueLinks;
+	private static WebClient client = new WebClient();
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
 		Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt", "dvwa");
@@ -175,12 +176,13 @@ public class DiscoverHelper {
 		return result;
 	}
 	
-	private static HashMap<String, HtmlPage> UniqueLinks;
 	private static HashMap<String, HtmlPage> GetLinks(String url, boolean recursive)
 	{
 		HtmlPage page;
-		if(UniqueLinks.containsKey(url))
-			page = UniqueLinks.get(url);
+		String urlNoParams = "";
+		urlNoParams = PathHelper.GetUrlNoParams(url);
+		if(UniqueLinks.containsKey(urlNoParams))
+			page = UniqueLinks.get(urlNoParams);
 		else
 		{
 			try {
@@ -193,6 +195,7 @@ public class DiscoverHelper {
 		List<HtmlAnchor> anchors = page.getAnchors();
 		String href;
 		String lastPiece;
+		
 		for(HtmlAnchor anchor: anchors)
 		{
 			try
@@ -209,13 +212,15 @@ public class DiscoverHelper {
 					href = PathHelper.Combine(new String[]{url, href});
 				}
 
+				urlNoParams = PathHelper.GetUrlNoParams(href);
 				if(new URL(href).getHost().equals(new URL(url).getHost())
-						&& !UniqueLinks.containsKey(href))
+						&& !UniqueLinks.containsKey(urlNoParams))
 				{
 					page = client.getPage(href);
-					UniqueLinks.put(href, page);
+					
+					UniqueLinks.put(urlNoParams, page);
 					if(recursive)
-						GetLinks(href, recursive);
+						GetLinks(urlNoParams, recursive);
 				}	
 			}
 			catch(MalformedURLException ex){
@@ -237,7 +242,6 @@ public class DiscoverHelper {
 	private static HashMap<String, HtmlPage> GuessPages(HashMap<String, HtmlPage> pages, String[] commonWords)
 	{
 		HashMap<String, HtmlPage> successGuesses = new HashMap<String, HtmlPage>();
-		URI uri;
 		String guess, fragmentWithExtension;
 		HtmlPage page;
 		
@@ -252,37 +256,32 @@ public class DiscoverHelper {
 		
 		for(String link: linksNoLastPiece)
 		{
-			try
+			for(String newFragment: commonWords)
 			{
-				uri = new URI(link);
-				for(String newFragment: commonWords)
+				for(String newExtension: _commonExtensions)
 				{
-					for(String newExtension: _commonExtensions)
+					fragmentWithExtension = "/"+newFragment + newExtension;
+					try
 					{
-						fragmentWithExtension = "/"+newFragment + newExtension;
-						try
+						guess = PathHelper.Combine(new String[]{link, fragmentWithExtension});
+						if (!pages.containsKey(guess))
 						{
-							guess = PathHelper.Combine(new String[]{link, fragmentWithExtension});
-							if (!pages.containsKey(guess))
+							HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
+							huc.setRequestMethod("HEAD");
+							int responseCode = huc.getResponseCode();
+							
+							if(responseCode == 200)
 							{
-								HttpURLConnection huc = (HttpURLConnection) new URL(guess).openConnection();
-								huc.setRequestMethod("HEAD");
-								int responseCode = huc.getResponseCode();
-								
-								if(responseCode == 200)
-								{
-									page = client.getPage(guess);
-									successGuesses.put(guess, page);
-								}
+								page = client.getPage(guess);
+								successGuesses.put(guess, page);
 							}
 						}
-						catch(MalformedURLException ex){System.err.println(ex.getMessage());}
-						catch(IOException ex){System.err.println(ex.getMessage());}
-						catch(IllegalArgumentException ex){System.err.println(ex.getMessage());}
 					}
+					catch(MalformedURLException ex){System.err.println(ex.getMessage());}
+					catch(IOException ex){System.err.println(ex.getMessage());}
+					catch(IllegalArgumentException ex){System.err.println(ex.getMessage());}
 				}
 			}
-			catch(URISyntaxException ex){System.err.println(ex.getMessage());}
 		}
 		
 		pages.putAll(successGuesses);
