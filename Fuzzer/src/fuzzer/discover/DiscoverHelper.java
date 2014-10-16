@@ -34,10 +34,6 @@ public class DiscoverHelper {
 	private static HashSet<String> _allLinks;
 	private static HashMap<String, HtmlPage> UniqueLinks;
 	private static WebClient client = new WebClient();
-
-	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt", "dvwa");
-	}
 	
 	//==================================================Public Methods=============================================================================
 	
@@ -293,8 +289,6 @@ public class DiscoverHelper {
 	
 	
 	public static void customAuth(String address, String usernamesFile, String passwordsFile, String url, boolean custom) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		//HtmlPage page = webClient.getPage("http://localhost:8080/bodgeit/product.jsp?prodid=26");
-		WebClient webClient = new WebClient();
 		HtmlPage page;
 		String successURL;
 
@@ -303,11 +297,11 @@ public class DiscoverHelper {
 		if (custom)
 		{
 			if (address.compareTo("dvwa") == 0){
-				page = webClient.getPage("http://127.0.0.1/dvwa/");
+				page = client.getPage("http://127.0.0.1/dvwa/");
 				successURL = ("http://127.0.0.1/dvwa/index.php");
 			}
 			else {
-				page = webClient.getPage("http://127.0.0.1/bodgeit");
+				page = client.getPage("http://127.0.0.1/bodgeit");
 				successURL = ("http://127.0.0.1/bodgeit/logout");
 			}
 			List<HtmlForm> forms = page.getForms();
@@ -339,7 +333,7 @@ public class DiscoverHelper {
 		}
 		else
 		{
-			page = webClient.getPage(url);
+			page = client.getPage(url);
 			String pageString = page.getWebResponse().getContentAsString();
 			List<String> allMatches = new ArrayList<String>();
 			Matcher m = Pattern.compile("(.*[u|U]sername|[p|P]assword)[=|:|-|;|.|,| ]*[a-zA-Z0-9!@$#%^&*()]*.*")
