@@ -86,7 +86,7 @@ public class TestHelper {
 					
 					responsePage = DiscoverHelper.getPageWithTimeout(formAction, submitButton);
 					
-					if(responsePage == null || !IsOutcomeOrdinary(responsePage))
+					if(responsePage == null || !IsOutcomeOrdinary(responsePage,vector))
 					{
 						System.out.println("The form submitting to '" + formAction +
 								"' may have a potential vulnerability from vector " + vector + ".\n");
@@ -117,7 +117,7 @@ public class TestHelper {
 			vectoredUrl = rootUrl + "?" + vectoredParams;
 			responsePage = DiscoverHelper.getPageWithTimeout(vectoredUrl, null);
 			
-			if(responsePage == null || !IsOutcomeOrdinary(responsePage))
+			if(responsePage == null || !IsOutcomeOrdinary(responsePage,vector))
 				System.out.println("The parameters for " + rootUrl +
 						" may have a potential vulnerability from vector (" + vector + ").");
 		}
@@ -125,7 +125,7 @@ public class TestHelper {
 	
 
 	
-	private static boolean IsOutcomeOrdinary(Page page)
+	private static boolean IsOutcomeOrdinary(Page page, String vector)
 	{
 		WebResponse response = page.getWebResponse();
 		boolean ret = true;
@@ -134,6 +134,11 @@ public class TestHelper {
 	    if(SensitiveDataleaked(response.getContentAsString(), sensitives))
 	    {
 	    	list.add("Sensitive data leaked");
+	    	ret = false;
+	    }
+	    if(response.getContentAsString().contains(vector))
+	    {
+	    	list.add("Input may be unsanitized: \""+vector+"\" was found in the page content.");
 	    	ret = false;
 	    }
 	    if(!IsResponseCodeOK(response))
