@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,9 +27,11 @@ import fuzzer.util.Utility;
 public class TestHelper {
 	private static WebClient client = new WebClient();
 	private static String[] sensitives;
+	private static int _timeout = 50;
 	
 	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout)
 	{
+		client.getOptions().setTimeout(_timeout);
 		String[] vectors = Utility.GetDelimStrings(vectorFileName, "\r\n");
 		sensitives = Utility.GetDelimStrings(sensitiveFileName, "\r\n");
 		String[] commonWords = Utility.GetDelimStrings(commonFileName);
@@ -77,19 +80,16 @@ public class TestHelper {
 				
 				if(submitButton != null)
 				{
-					try {
-						responsePage = submitButton.click();
-						
-						if(SensitiveDataleaked(responsePage, sensitives))
-						{
-							System.out.println("--" + page.getUrl() + "--");
-							formAction = formEle.getAttribute("action");
-							if(formAction.isEmpty())
-								formAction = page.getUrl().toString();
-							System.out.println("The form submitting to '" + formAction +
-									"' may have a potential vulnerability from vector " + vector + ".");
-						}
-					} catch (IOException e) {
+					responsePage = getPageWithTimeout(client, null, submitButton);
+					
+					if(responsePage == null && IsOutcomeOrdinary(responsePage))
+					{
+						System.out.println("--" + page.getUrl() + "--");
+						formAction = formEle.getAttribute("action");
+						if(formAction.isEmpty())
+							formAction = page.getUrl().toString();
+						System.out.println("The form submitting to '" + formAction +
+								"' may have a potential vulnerability from vector " + vector + ".");
 					}
 				}
 			}
@@ -101,7 +101,6 @@ public class TestHelper {
 		String vectoredUrl = "";
 		String vectoredParams = "";
 		Set<String> vectoredParamSet;
-		String[] vectoredParamList;
 		String[] vectoredParamArray;
 		Page responsePage;
 		
@@ -116,33 +115,71 @@ public class TestHelper {
 			
 			vectoredUrl = rootUrl + "?" + vectoredParams;
 			
-			try {
-				responsePage = client.getPage(vectoredUrl);
-				
-				if(SensitiveDataleaked(responsePage, sensitives))
-					System.out.println("The parameters for " + rootUrl +
-							" may have a potential vulnerability from vector (" + vector + ").");
-				
-			} catch (FailingHttpStatusCodeException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (MalformedURLException e) {
-				System.err.println(e.getMessage());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				System.err.println(e.getMessage());
-			}
+			responsePage = getPageWithTimeout(client, vectoredUrl, null);
+			
+			if(responsePage == null && IsOutcomeOrdinary(responsePage))
+				System.out.println("The parameters for " + rootUrl +
+						" may have a potential vulnerability from vector (" + vector + ").");
 		}
 	}
 	
-	private static boolean SensitiveDataleaked(Page page, String[] keywords)
+	private static Page getPageWithTimeout(WebClient client, String vectoredUrl, HtmlElement submitButton)
+	{
+		Page responsePage = null;
+		
+		try {
+			if(submitButton == null)
+				responsePage = client.getPage(vectoredUrl);
+			else
+				responsePage = submitButton.click();
+		}
+		catch (FailingHttpStatusCodeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return responsePage;
+	}
+	
+	private static boolean IsOutcomeOrdinary(Page page)
 	{
 		WebResponse response = page.getWebResponse();
-	    String content = response.getContentAsString();
+		
+	    if(SensitiveDataleaked(response.getContentAsString(), sensitives))
+	    	return false;
+	    if(IsResponseCodeOK(response))
+	    	return false;
+	    
+	    return true;
+	}
+	
+	private static boolean IsResponseCodeOK(WebResponse response)
+	{
+		int code = response.getStatusCode();
+		if(code != 200)
+		{
+			System.out.println("Status code not ok: "  + code + ":" + response.getStatusMessage());
+			return false;
+		}
+			
+		return true;
+	}
+	
+	private static boolean SensitiveDataleaked(String responseString, String[] keywords)
+	{
 		for(String keyword: keywords)
 		{
-			if(content.contains(keyword))
+			if(responseString.contains(keyword))
+			{
+				System.out.println("Sensitive data leaked");
 				return true;
+			}
 		}
 		
 		return false;

