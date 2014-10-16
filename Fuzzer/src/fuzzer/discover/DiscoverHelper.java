@@ -102,8 +102,6 @@ public class DiscoverHelper {
 	public static String DiscoverInputs(HashMap<String, HtmlPage> pages) throws MalformedURLException, IOException
 	{
 		String result = "";
-		for (String al : _allLinks)
-			System.out.println(al);
 		Map<String, Set<String>> urlParams = GetUrlParams(_allLinks);
 		result += PrintHelper.UrlParamsToString(urlParams);
 		
