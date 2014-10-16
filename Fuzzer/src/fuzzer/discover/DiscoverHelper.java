@@ -309,8 +309,8 @@ public class DiscoverHelper {
 		HtmlPage page;
 		String successURL;
 
-		String[] common_users = Utility.GetDelimStrings(usernamesFile);
-		String[] common_passwords = Utility.GetDelimStrings(passwordsFile);
+		String[] common_users = {"admin", "admin1", "user", "username", "root", "main", "mainuser"};
+		String[] common_passwords = {"password", "admin", "password1", "123", "12345", "1234", "password123", "password1234"};
 		
 		boolean isDvwa = address.compareTo("dvwa") == 0;
 		if (custom)
@@ -321,7 +321,7 @@ public class DiscoverHelper {
 			}
 			else {
 				page = client.getPage("http://127.0.0.1:8080/bodgeit/login.jsp");
-				successURL = ("http://127.0.0.1/bodgeit/logout");
+				successURL = ("http://127.0.0.1:8080/bodgeit/login.jsp");
 			}
 			List<HtmlForm> forms = page.getForms();
 			for (HtmlForm form : forms) 
@@ -339,7 +339,8 @@ public class DiscoverHelper {
 							else
 								page = (HtmlPage) form.getInputByValue("Login").click();
 							
-							if (page.getUrl().toString().compareTo(successURL) == 0)
+							if (page.getUrl().toString().compareTo(successURL) == 0 &&
+									(isDvwa || page.getWebResponse().getContentAsString().contains("successful")))
 							{
 								System.out.println("SUCCESS\n");
 								System.out.print("USERNAME: " + username + "\n");
@@ -352,6 +353,7 @@ public class DiscoverHelper {
 					}
 				}
 			}
+			System.out.println("CustomAuth Unsucessful");
 		}
 		else
 		{
