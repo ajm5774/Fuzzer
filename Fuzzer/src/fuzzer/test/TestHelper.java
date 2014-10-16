@@ -98,7 +98,6 @@ public class TestHelper {
 		
 		for(String rootUrl : urlParams.keySet())
 		{
-			System.out.println(rootUrl);
 			vectoredParamSet = urlParams.get(rootUrl);
 			vectoredParamArray = vectoredParamSet.toArray(new String[vectoredParamSet.size()]);
 			for(int i = 0; i < vectoredParamArray.length; i++)
