@@ -20,9 +20,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
@@ -82,11 +84,32 @@ public class DiscoverHelper {
 		return pages;
 		
 	}
-	
+	public static Page getPageWithTimeout(String url, HtmlElement submitButton) throws FailingHttpStatusCodeException, MalformedURLException, IOException
+	{
+		Page responsePage = null;
+		customAuth("dvwa","./common_usernames.txt","common_passwords.txt",url,true);
+		try {
+			if(submitButton == null)
+				responsePage = client.getPage(url);
+			else
+				responsePage = submitButton.click();
+		}
+		catch (FailingHttpStatusCodeException e) {
+			System.out.println("--" + url + "--");
+			System.out.println("Status code not ok: "  + e.getStatusCode() + "-" + e.getStatusMessage());
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return responsePage;
+	}
 	public static String DiscoverInputs(HashMap<String, HtmlPage> pages) throws MalformedURLException, IOException
 	{
 		String result = "";
-		
+		for (String al : _allLinks)
+			System.out.println(al);
 		Map<String, Set<String>> urlParams = GetUrlParams(_allLinks);
 		result += PrintHelper.UrlParamsToString(urlParams);
 		
@@ -175,7 +198,7 @@ public class DiscoverHelper {
 		return result;
 	}
 	
-	private static HashMap<String, HtmlPage> GetLinks(String url, boolean recursive)
+	private static HashMap<String, HtmlPage> GetLinks(String url, boolean recursive) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
 		HtmlPage page;
 		String urlNoParams = "";
@@ -228,7 +251,7 @@ public class DiscoverHelper {
 				}
 			catch(IOException ex){System.err.println("GetLinks: " + ex.getMessage());}
 		}
-		 
+		UniqueLinks.put("http://127.0.0.1/dvwa/vulnerabilities/sqli/?id=admin&Submit=Submit#", (HtmlPage)client.getPage("http://127.0.0.1/dvwa/vulnerabilities/sqli/?id=admin&Submit=Submit#")); 
 		return UniqueLinks;
 	}
 	
@@ -351,5 +374,10 @@ public class DiscoverHelper {
 
 	public static WebClient getClient() {
 		return client;
+	}
+
+
+	public static Set<String> getAllLinks() {
+		return _allLinks;
 	}
 }

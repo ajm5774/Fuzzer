@@ -1,13 +1,8 @@
-Username
-Password
-First name
 Surname
-SQL
 Error
 error
 exception
 Exception
-sql
 mysql
 MYSQL
 MySQL

@@ -25,13 +25,14 @@ import fuzzer.discover.DiscoverHelper;
 import fuzzer.util.Utility;
 
 public class TestHelper {
-	private static WebClient client = new WebClient();
+	private static WebClient client = DiscoverHelper.getClient();
 	private static String[] sensitives;
-	private static int _timeout = 1;
-	
+	private static int _timeout = 1000;
+	private static String _url;
 	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout, String customAuth)
 	{
-		client.getOptions().setTimeout(_timeout);
+		//client.getOptions().setTimeout(_timeout);
+		_url = url;
 		String[] vectors = Utility.GetDelimStrings(vectorFileName, "\r\n");
 		sensitives = Utility.GetDelimStrings(sensitiveFileName, "\r\n");
 		String[] commonWords = Utility.GetDelimStrings(commonFileName);
@@ -39,7 +40,6 @@ public class TestHelper {
 		try
 		{
 			HashMap<String, HtmlPage> pages = DiscoverHelper.DiscoverPages(url, commonWords, customAuth, customAuth!=null);
-			
 			for(String vector : vectors)
 			{
 				SendToForm(vector, pages);
@@ -47,11 +47,11 @@ public class TestHelper {
 			}
 		}
 		//TODO: we need to catch timeout exceptions in a different block
-		catch(Exception ex){}
+		catch(Exception ex){System.out.println(ex.getMessage());}
 		
 	}
 	
-	private static void SendToForm(String vector, HashMap<String, HtmlPage> pages)
+	private static void SendToForm(String vector, HashMap<String, HtmlPage> pages) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
 		List<HtmlElement> inputs;
 		List<HtmlForm> forms;
@@ -84,7 +84,7 @@ public class TestHelper {
 					if(formAction.isEmpty())
 						formAction = page.getUrl().toString();
 					
-					responsePage = getPageWithTimeout(client, formAction, submitButton);
+					responsePage = DiscoverHelper.getPageWithTimeout(formAction, submitButton);
 					
 					if(responsePage == null || !IsOutcomeOrdinary(responsePage))
 					{
@@ -96,7 +96,7 @@ public class TestHelper {
 		}
 	}
 	
-	private static void SendToUrl(String vector, Map<String, Set<String>> urlParams)
+	private static void SendToUrl(String vector, Map<String, Set<String>> urlParams) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
 		String vectoredUrl = "";
 		String vectoredParams = "";
@@ -106,6 +106,7 @@ public class TestHelper {
 		
 		for(String rootUrl : urlParams.keySet())
 		{
+			System.out.println(rootUrl);
 			vectoredParamSet = urlParams.get(rootUrl);
 			vectoredParamArray = vectoredParamSet.toArray(new String[vectoredParamSet.size()]);
 			for(int i = 0; i < vectoredParamArray.length; i++)
@@ -114,8 +115,7 @@ public class TestHelper {
 			vectoredParams = Utility.Implode("&", vectoredParamArray);
 			
 			vectoredUrl = rootUrl + "?" + vectoredParams;
-			
-			responsePage = getPageWithTimeout(client, vectoredUrl, null);
+			responsePage = DiscoverHelper.getPageWithTimeout(vectoredUrl, null);
 			
 			if(responsePage == null || !IsOutcomeOrdinary(responsePage))
 				System.out.println("The parameters for " + rootUrl +
@@ -123,27 +123,7 @@ public class TestHelper {
 		}
 	}
 	
-	private static Page getPageWithTimeout(WebClient client, String url, HtmlElement submitButton)
-	{
-		Page responsePage = null;
-		
-		try {
-			if(submitButton == null)
-				responsePage = client.getPage(url);
-			else
-				responsePage = submitButton.click();
-		}
-		catch (FailingHttpStatusCodeException e) {
-			System.out.println("--" + url + "--");
-			System.out.println("Status code not ok: "  + e.getStatusCode() + "-" + e.getStatusMessage());
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return responsePage;
-	}
+
 	
 	private static boolean IsOutcomeOrdinary(Page page)
 	{
