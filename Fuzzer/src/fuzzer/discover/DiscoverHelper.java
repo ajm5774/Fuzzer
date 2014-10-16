@@ -311,14 +311,16 @@ public class DiscoverHelper {
 
 		String[] common_users = Utility.GetDelimStrings(usernamesFile);
 		String[] common_passwords = Utility.GetDelimStrings(passwordsFile);
+		
+		boolean isDvwa = address.compareTo("dvwa") == 0;
 		if (custom)
 		{
-			if (address.compareTo("dvwa") == 0){
+			if (isDvwa){
 				page = client.getPage("http://127.0.0.1/dvwa/");
 				successURL = ("http://127.0.0.1/dvwa/index.php");
 			}
 			else {
-				page = client.getPage("http://127.0.0.1/bodgeit");
+				page = client.getPage("http://127.0.0.1:8080/bodgeit/login.jsp");
 				successURL = ("http://127.0.0.1/bodgeit/logout");
 			}
 			List<HtmlForm> forms = page.getForms();
@@ -332,7 +334,10 @@ public class DiscoverHelper {
 						{
 							form.getInputByName("username").setValueAttribute(username);
 							form.getInputByName("password").setValueAttribute(password);
-							page = (HtmlPage) form.getInputByName("Login").click();
+							if(isDvwa)
+								page = (HtmlPage) form.getInputByName("Login").click();
+							else
+								page = (HtmlPage) form.getInputByValue("Login").click();
 							
 							if (page.getUrl().toString().compareTo(successURL) == 0)
 							{
