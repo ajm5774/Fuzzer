@@ -4,19 +4,14 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -28,25 +23,22 @@ public class TestHelper {
 	private static WebClient client = DiscoverHelper.getClient();
 	private static String[] sensitives;
 	private static int _timeout = 1000;
-	private static String _url;
-	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout, String customAuth)
+	
+	public static void Test(String vectorFileName, String sensitiveFileName, int timeout)
 	{
-		//client.getOptions().setTimeout(_timeout);
-		_url = url;
+		client.getOptions().setTimeout(_timeout);
 		String[] vectors = Utility.GetDelimStrings(vectorFileName, "\r\n");
 		sensitives = Utility.GetDelimStrings(sensitiveFileName, "\r\n");
-		String[] commonWords = Utility.GetDelimStrings(commonFileName);
 		
 		try
 		{
-			HashMap<String, HtmlPage> pages = DiscoverHelper.DiscoverPages(url, commonWords, customAuth, customAuth!=null);
+			HashMap<String, HtmlPage> pages = DiscoverHelper.getUniquePages();
 			for(String vector : vectors)
 			{
 				SendToForm(vector, pages);
 				SendToUrl(vector, DiscoverHelper.GetUrlParams(pages.keySet()));
 			}
 		}
-		//TODO: we need to catch timeout exceptions in a different block
 		catch(Exception ex){System.out.println(ex.getMessage());}
 		
 	}
