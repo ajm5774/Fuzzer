@@ -92,6 +92,6 @@ public class Main {
 		
 		DiscoverHelper.Discover(url, common_words, custom_auth);
 		if(test)
-			TestHelper.Test(url, common_words,vectors , sensitive, random, slow);
+			TestHelper.Test(url, common_words,vectors , sensitive, random, slow, custom_auth);
 	}	
 }		

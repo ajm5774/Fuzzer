@@ -29,7 +29,7 @@ public class TestHelper {
 	private static String[] sensitives;
 	private static int _timeout = 1;
 	
-	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout)
+	public static void Test(String url, String commonFileName, String vectorFileName, String sensitiveFileName, boolean random, int timeout, String customAuth)
 	{
 		client.getOptions().setTimeout(_timeout);
 		String[] vectors = Utility.GetDelimStrings(vectorFileName, "\r\n");
@@ -38,7 +38,7 @@ public class TestHelper {
 		
 		try
 		{
-			HashMap<String, HtmlPage> pages = DiscoverHelper.DiscoverPages(url, commonWords);
+			HashMap<String, HtmlPage> pages = DiscoverHelper.DiscoverPages(url, commonWords, customAuth, customAuth!=null);
 			
 			for(String vector : vectors)
 			{

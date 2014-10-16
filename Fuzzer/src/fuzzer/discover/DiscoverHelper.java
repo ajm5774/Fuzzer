@@ -33,7 +33,12 @@ public class DiscoverHelper {
 	private static String[] _commonExtensions = {"", ".php", ".jsp"};
 	private static HashSet<String> _allLinks;
 	private static HashMap<String, HtmlPage> UniqueLinks;
-	private static WebClient client = new WebClient();
+	private static WebClient client;
+
+	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
+		Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt", "dvwa");
+	}
+
 	
 	//==================================================Public Methods=============================================================================
 	
@@ -41,16 +46,13 @@ public class DiscoverHelper {
 	public static String Discover(String url, String fileName, String customAuth)
 	{
 		String result = "";
-		
+		client = new WebClient();
 		String[] commonWords = Utility.GetDelimStrings(fileName);
 		
 		try {
-			System.out.println("Custom Authentication");
-			boolean isCustom = customAuth == null ? false : true;
-			customAuth(customAuth,"./common_usernames.txt","common_passwords.txt",url,isCustom);
 			
 			System.out.println("Page Discovery (may take ~5-10 seconds)");
-			HashMap<String, HtmlPage> urls = DiscoverPages(url, commonWords);
+			HashMap<String, HtmlPage> urls = DiscoverPages(url, commonWords, customAuth, customAuth!=null);
 			String pages = PrintHelper.PagesToString(urls.keySet());
 			result += pages;
 			System.out.println(pages);
@@ -68,13 +70,13 @@ public class DiscoverHelper {
 		return result;
 	}
 	
-	public static HashMap<String, HtmlPage> DiscoverPages(String url, String[] commonWords)
+	public static HashMap<String, HtmlPage> DiscoverPages(String url, String[] commonWords, String customAuth, boolean isCustom) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
+		customAuth(customAuth,"./common_usernames.txt","common_passwords.txt",url,isCustom);
 		HashMap<String, HtmlPage> pages = new HashMap<String, HtmlPage>();
-
 		UniqueLinks = new HashMap<String, HtmlPage>();
 		_allLinks = new HashSet<String>();
-		pages = GetLinks(url, true);
+		pages = GetLinks(url, false);
 		pages = GuessPages(pages, commonWords);
 		
 		return pages;
@@ -345,5 +347,9 @@ public class DiscoverHelper {
 			System.out.println(allMatches);
 			return;
 		}
+	}
+
+	public static WebClient getClient() {
+		return client;
 	}
 }
