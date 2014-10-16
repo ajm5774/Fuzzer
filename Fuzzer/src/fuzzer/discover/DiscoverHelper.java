@@ -37,11 +37,6 @@ public class DiscoverHelper {
 	private static HashMap<String, HtmlPage> UniqueLinks;
 	private static WebClient client;
 
-	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
-		Discover("http://127.0.0.1:8080/bodgeit/contact.jsp", "CommonWordsTest.txt", "dvwa");
-	}
-
-	
 	//==================================================Public Methods=============================================================================
 	
 	
@@ -79,7 +74,7 @@ public class DiscoverHelper {
 		UniqueLinks = new HashMap<String, HtmlPage>();
 		_allLinks = new HashSet<String>();
 		pages = GetLinks(url, false);
-		pages = GuessPages(pages, commonWords);
+		UniqueLinks = GuessPages(pages, commonWords);
 		
 		return pages;
 		
@@ -87,7 +82,6 @@ public class DiscoverHelper {
 	public static Page getPageWithTimeout(String url, HtmlElement submitButton) throws FailingHttpStatusCodeException, MalformedURLException, IOException
 	{
 		Page responsePage = null;
-		customAuth("dvwa","./common_usernames.txt","common_passwords.txt",url,true);
 		try {
 			if(submitButton == null)
 				responsePage = client.getPage(url);
@@ -379,5 +373,9 @@ public class DiscoverHelper {
 
 	public static Set<String> getAllLinks() {
 		return _allLinks;
+	}
+	
+	public static HashMap<String, HtmlPage> getUniquePages() {
+		return UniqueLinks;
 	}
 }
